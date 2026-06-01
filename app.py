@@ -27,12 +27,12 @@ if st_autorefresh is not None:
     st_autorefresh(interval=60_000, key="dashboard_refresh")
 
 # =========================================================
-# CLEAN STYLE (Tanpa Kotak Kustom HTML)
+# CLEAN STYLE (Tanpa Kotak Kustom HTML & Mendukung Light/Dark Mode)
 # =========================================================
 st.markdown(
     """
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap');
         
         html, body, [data-testid="stAppViewContainer"] {
             font-family: 'Inter', sans-serif;
@@ -43,7 +43,7 @@ st.markdown(
             padding-bottom: 2rem; 
         }
         
-        /* Desain Metric Card bawaan agar sedikit rapi tanpa background kaku */
+        /* Modifikasi Metric Card bawaan agar rapi & adaptif */
         div[data-testid="stMetric"] {
             border: 1px solid rgba(148, 163, 184, 0.2) !important;
             padding: 15px 20px !important;
@@ -80,7 +80,7 @@ st.markdown(
             100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(34, 211, 92, 0); }
         }
 
-        /* Desain Tab Kustom yang Bersih */
+        /* Desain Tab Kustom */
         .stTabs [data-baseweb="tab-list"] {
             gap: 8px;
             background-color: rgba(148, 163, 184, 0.08);
@@ -105,13 +105,30 @@ st.markdown(
 )
 
 # =========================================================
-# CONSTANTS
+# CONSTANTS (Pilihan Saham Pembanding Diperbanyak)
 # =========================================================
 PRIMARY_TICKER = "TLKM.JK"
 BENCHMARKS = {
+    # Perbankan (Big 4)
     "BBCA": "BBCA.JK",
     "BBRI": "BBRI.JK",
     "BMRI": "BMRI.JK",
+    "BBNI": "BBNI.JK",
+    # Telekomunikasi & Infrastruktur
+    "ISAT": "ISAT.JK",
+    "EXCL": "EXCL.JK",
+    "JSMR": "JSMR.JK",
+    # Komoditas, Energi & Pertambangan
+    "ADRO": "ADRO.JK",
+    "PTBA": "PTBA.JK",
+    "ITMG": "ITMG.JK",
+    "ANTM": "ANTM.JK",
+    "PGAS": "PGAS.JK",
+    # Consumer Goods & Konglomerasi
+    "UNVR": "UNVR.JK",
+    "ICBP": "ICBP.JK",
+    "INDF": "INDF.JK",
+    "GGRM": "GGRM.JK",
     "ASII": "ASII.JK",
 }
 
@@ -270,9 +287,7 @@ def apply_clean_theme(fig, y_title, x_title="Tanggal"):
         plot_bgcolor="rgba(0,0,0,0)",
         hovermode="x unified",
         margin=dict(l=10, r=10, t=20, b=10),
-        legend=dict(
-            orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
-        ),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
     )
     fig.update_xaxes(title_text=x_title, showgrid=False)
     fig.update_yaxes(title_text=y_title, showgrid=True, gridcolor="rgba(148, 163, 184, 0.15)")
@@ -421,48 +436,15 @@ def plot_benchmark(selected_tickers: list[str], period: str, interval: str):
     return apply_clean_theme(fig, "Index Normalized")
 
 
-def show_fundamentals(ticker: str):
-    try:
-        info = yf.Ticker(ticker).info
-    except Exception:
-        info = {}
-
-    fields = {
-        "Long Name": info.get("longName"),
-        "Market Cap": info.get("marketCap"),
-        "PE Ratio": info.get("trailingPE"),
-        "Dividend Yield": info.get("dividendYield"),
-        "Beta": info.get("beta"),
-        "52W High": info.get("fiftyTwoWeekHigh"),
-        "52W Low": info.get("fiftyTwoWeekLow"),
-        "Currency": info.get("currency"),
-        "Sector": info.get("sector"),
-        "Industry": info.get("industry"),
-    }
-
-    c1, c2 = st.columns(2)
-    items = list(fields.items())
-    for idx, (label, value) in enumerate(items):
-        col = c1 if idx % 2 == 0 else c2
-        with col:
-            if label == "Market Cap" and value is not None:
-                display_value = f"{value:,.0f}".replace(",", ".")
-            elif label == "Dividend Yield" and value is not None:
-                display_value = f"{value*100:.2f}%"
-            elif isinstance(value, float):
-                display_value = f"{value:.2f}"
-            else:
-                display_value = "-" if value is None else str(value)
-            st.metric(label, display_value)
-
-
 def sidebar_controls():
     st.sidebar.title("Kontrol Dashboard")
     period_label = st.sidebar.selectbox("Periode Historis", list(PERIOD_MAP.keys()), index=3)
+    
+    # Multiselect diperluas pilihan sahamnya
     compare = st.sidebar.multiselect(
-        "Saham pembanding",
+        "Saham Pembanding (Bisa pilih banyak)",
         options=list(BENCHMARKS.keys()),
-        default=["BBCA", "BBRI", "BMRI", "ASII"],
+        default=["BBCA", "BBRI", "BMRI", "ASII", "ISAT"],
     )
     refresh_note = st.sidebar.checkbox("Auto refresh 60 detik", value=True)
 
@@ -511,6 +493,9 @@ latest_signal_line = safe_latest(hist_df["Signal_Line"]) if "Signal_Line" in his
 latest_ma50 = safe_latest(hist_df["MA50"]) if "MA50" in hist_df.columns else np.nan
 latest_ma20 = safe_latest(hist_df["MA20"]) if "MA20" in hist_df.columns else np.nan
 
+# Penanganan pembacaan model_name fleksibel huruf besar/kecil
+model_display_name = metrics.get("model_name", metrics.get("MODEL_NAME", "Multivariate LSTM"))
+
 signal, signal_desc = trading_signal(
     latest_rsi,
     latest_macd,
@@ -540,17 +525,16 @@ make_metric_card(m1, "Harga Saat Ini", fmt_idr(latest_price), fmt_num(change_val
 make_metric_card(m2, "Perubahan Harian", fmt_pct(change_pct), f"{'+' if change_value >= 0 else ''}{fmt_num(change_value, 0)}", "Perbandingan close terakhir dan sebelumnya")
 make_metric_card(m3, "Volume", f"{int(latest_volume):,}".replace(",", ".") if not pd.isna(latest_volume) else "-", None, "Volume perdagangan terakhir")
 make_metric_card(m4, "Sinyal", signal, None, signal_desc)
-make_metric_card(m5, "Model Utama", metrics.get("model_name", "Multivariate LSTM"), None, "Model terbaik yang disimpan di metrics.json")
+make_metric_card(m5, "Model Utama", model_display_name, None, "Model terbaik yang disimpan di metrics.json")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # =========================================================
-# MAIN LAYOUT (Menggunakan Subheader Asli Streamlit)
+# MAIN LAYOUT (4 Tabs - Bagian Fundamental Telah Dihapus)
 # =========================================================
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Historis & Forecast",
     "🎯 Evaluasi Model",
-    "🏢 Fundamental TLKM",
     "⚖️ Perbandingan Saham",
     "🗂️ Data Mentah",
 ])
@@ -622,24 +606,31 @@ with tab2:
 
     with e1:
         st.subheader("🎯 Evaluasi Model")
+        
+        # Perbaikan pencarian nilai agar mendukung key huruf besar maupun kecil dari JSON
+        mae_val = metrics.get("mae", metrics.get("MAE"))
+        rmse_val = metrics.get("rmse", metrics.get("RMSE"))
+        mape_val = metrics.get("mape", metrics.get("MAPE"))
+        acc_val = metrics.get("accuracy", metrics.get("ACCURACY", metrics.get("Acc", metrics.get("ACC"))))
+        r2_val = metrics.get("r2", metrics.get("R2", metrics.get("r2_score")))
+
         em1, em2, em3 = st.columns(3)
-        em1.metric("MAE", fmt_num(metrics.get("mae"), 4))
-        em2.metric("RMSE", fmt_num(metrics.get("rmse"), 4))
-        em3.metric("MAPE", fmt_pct(metrics.get("mape"), 2))
+        em1.metric("MAE", fmt_num(mae_val, 4))
+        em2.metric("RMSE", fmt_num(rmse_val, 4))
+        em3.metric("MAPE", fmt_pct(mape_val, 2) if mape_val is not None else "-")
 
         em4, em5 = st.columns(2)
-        em4.metric("Accuracy", fmt_pct(metrics.get("accuracy"), 2))
-        em5.metric("R²", fmt_num(metrics.get("r2"), 4))
+        em4.metric("Accuracy", fmt_pct(acc_val, 2) if acc_val is not None else "-")
+        em5.metric("R²", fmt_num(r2_val, 4))
         st.markdown("<br>", unsafe_allow_html=True)
 
         st.subheader("ℹ️ Informasi Model")
-        model_name = metrics.get("model_name", "Multivariate LSTM")
-        epochs = metrics.get("epochs", "-")
-        batch_size = metrics.get("batch_size", "-")
-        lookback = metrics.get("lookback", "-")
+        epochs = metrics.get("epochs", metrics.get("EPOCHS", "-"))
+        batch_size = metrics.get("batch_size", metrics.get("BATCH_SIZE", "-"))
+        lookback = metrics.get("lookback", metrics.get("LOOKBACK", "-"))
 
         mi1, mi2 = st.columns(2)
-        mi1.metric("Model", model_name)
+        mi1.metric("Model", model_display_name)
         mi2.metric("Epoch", str(epochs))
         mi3, mi4 = st.columns(2)
         mi3.metric("Batch Size", str(batch_size))
@@ -662,18 +653,17 @@ with tab2:
             st.dataframe(loss_df.head(25), use_container_width=True, hide_index=True)
 
 with tab3:
-    st.subheader("🏢 Fundamental Saham TLKM")
-    st.caption("Data ini diambil dari Yahoo Finance melalui yfinance. Nilai bisa berubah sesuai ketersediaan data.")
-    show_fundamentals(PRIMARY_TICKER)
-
-with tab4:
     st.subheader("⚖️ Perbandingan Kinerja Saham")
-    st.caption("TLKM tetap menjadi fokus utama. Grafik berikut membandingkan kinerja harga yang dinormalisasi terhadap saham lain.")
-    selected = [(k, BENCHMARKS[k]) for k in compare_list]
-    selected.insert(0, ("TLKM", PRIMARY_TICKER))
+    st.caption("TLKM tetap menjadi fokus utama. Grafik berikut membandingkan kinerja harga yang dinormalisasi terhadap saham pembanding pilihanmu.")
+    selected = [(k, BENCHMARKS[k]) for k in compare_list if k in BENCHMARKS]
+    
+    # Memastikan TLKM selalu masuk di urutan pertama
+    if ("TLKM", PRIMARY_TICKER) not in selected:
+        selected.insert(0, ("TLKM", PRIMARY_TICKER))
+        
     bench_fig = plot_benchmark(selected, period, interval)
     if bench_fig is None:
-        st.warning("Data pembanding belum tersedia.")
+        st.warning("Data pembanding belum tersedia atau gagal dimuat.")
     else:
         st.plotly_chart(bench_fig, use_container_width=True)
 
@@ -715,7 +705,7 @@ with tab4:
             hide_index=True,
         )
 
-with tab5:
+with tab4:
     st.subheader("🗂️ Data Mentah Historis TLKM")
     preview_cols = [c for c in ["Date", "Open", "High", "Low", "Close", "Volume", "RSI", "MACD", "MA20", "MA50"] if c in hist_df.columns]
     show_df = hist_df[preview_cols].copy()
