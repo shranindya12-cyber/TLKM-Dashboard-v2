@@ -27,27 +27,78 @@ if st_autorefresh is not None:
     st_autorefresh(interval=60_000, key="dashboard_refresh")
 
 # =========================================================
-# STYLE (Adaptif, Pendekatan Bersih Tanpa Kotak Hitam Kosong)
+# CLEAN STYLE (Adaptif, Aman dari Kotak Hitam Kosong)
 # =========================================================
 st.markdown(
     """
     <style>
-        .block-container { padding-top: 1.2rem; padding-bottom: 1.5rem; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap');
         
-        /* Modifikasi Metric Card Bawaan Streamlit agar Rapi */
-        div[data-testid="stMetric"] {
-            background: rgba(148, 163, 184, 0.05) !important;
-            border: 1px solid rgba(148, 163, 184, 0.15) !important;
-            padding: 14px !important;
-            border-radius: 16px !important;
+        html, body, [data-testid="stAppViewContainer"] {
+            font-family: 'Inter', sans-serif;
         }
-        .section-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.6rem; margin-top: 0.5rem; }
-        .muted { color: #94a3b8; font-size: 0.92rem; }
-        .small { font-size: 0.85rem; }
+        
+        .block-container { 
+            padding-top: 1.5rem; 
+            padding-bottom: 2rem; 
+        }
+        
+        /* Merapikan Metric Card Bawaan Streamlit */
+        div[data-testid="stMetric"] {
+            border: 1px solid rgba(148, 163, 184, 0.2) !important;
+            padding: 15px 20px !important;
+            border-radius: 12px !important;
+            background-color: rgba(148, 163, 184, 0.05) !important;
+        }
+        
+        .muted { color: #64748b; font-size: 0.95rem; }
+        
+        /* Badge Live dengan Animasi Efek Denyut */
         .badge-live {
-            display:inline-block; padding: 0.25rem 0.6rem; border-radius: 999px;
-            background: rgba(34,197,94,0.15); color: #22c55e; font-weight: 700; font-size: 0.75rem;
-            border: 1px solid rgba(34,197,94,0.25);
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px;
+            padding: 0.35rem 0.75rem; 
+            border-radius: 8px;
+            background: rgba(34, 197, 94, 0.15); 
+            color: #22c55e; 
+            font-weight: 700; 
+            font-size: 0.75rem;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        .badge-live::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(34, 211, 92, 0.5); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 211, 92, 0); }
+            100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(34, 211, 92, 0); }
+        }
+
+        /* Desain Tab Bar Minimalis */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 8px;
+            background-color: rgba(148, 163, 184, 0.08);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 40px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            padding: 0 16px;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+            font-weight: 600;
         }
     </style>
     """,
@@ -62,6 +113,12 @@ BENCHMARKS = {
     "BBCA": "BBCA.JK",
     "BBRI": "BBRI.JK",
     "BMRI": "BMRI.JK",
+    "BBNI": "BBNI.JK",
+    "ISAT": "ISAT.JK",
+    "EXCL": "EXCL.JK",
+    "JSMR": "JSMR.JK",
+    "ADRO": "ADRO.JK",
+    "PTBA": "PTBA.JK",
     "ASII": "ASII.JK",
 }
 
@@ -117,7 +174,6 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     ema26 = out["Close"].ewm(span=26, adjust=False).mean()
     out["MACD"] = ema12 - ema26
     out["Signal_Line"] = out["MACD"].ewm(span=9, adjust=False).mean()
-    out["Volatility_20"] = out["Return"].rolling(20).std()
     return out
 
 
@@ -139,7 +195,7 @@ def load_csv(path: str) -> pd.DataFrame:
 
 
 def safe_get_metric(metrics_dict: dict, key: str):
-    """Membaca data JSON baik dengan huruf besar maupun kecil agar tidak bernilai strip (—)"""
+    """Mencegah nilai kosong akibat perbedaan huruf besar/kecil di JSON"""
     val = metrics_dict.get(key.lower())
     if val is None:
         val = metrics_dict.get(key.upper())
@@ -196,104 +252,64 @@ def trading_signal(rsi: float, macd: float, signal_line: float, close: float, ma
     return "HOLD", "Sinyal campuran. Tren belum cukup kuat untuk keputusan agresif."
 
 
-def make_metric_card(col, label, value, delta=None, help_text=None):
-    with col:
-        st.metric(label=label, value=value, delta=delta, help=help_text)
+# =========================================================
+# CONFIG PLOTLY VISUAL
+# =========================================================
+def apply_clean_theme(fig, y_title, x_title="Tanggal"):
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        hovermode="x unified",
+        margin=dict(l=10, r=10, t=30, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+    )
+    fig.update_xaxes(title_text=x_title, showgrid=False)
+    fig.update_yaxes(title_text=y_title, showgrid=True, gridcolor="rgba(148, 163, 184, 0.15)")
+    return fig
 
 
 def plot_price_history(df: pd.DataFrame, ticker_label: str):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df["Date"], y=df["Close"], mode="lines", name="Close", line=dict(width=2), hovertemplate="%{x|%d %b %Y}<br>Close: Rp %{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=df["Date"], y=df["Close"], mode="lines", name="Close Price", line=dict(width=2.5, color="#3b82f6")))
     if "MA20" in df.columns:
-        fig.add_trace(go.Scatter(x=df["Date"], y=df["MA20"], mode="lines", name="MA20", line=dict(width=2, dash="dot"), hovertemplate="%{x|%d %b %Y}<br>MA20: Rp %{y:,.0f}<extra></extra>"))
+        fig.add_trace(go.Scatter(x=df["Date"], y=df["MA20"], mode="lines", name="MA20", line=dict(width=1.5, color="#10b981", dash="dot")))
     if "MA50" in df.columns:
-        fig.add_trace(go.Scatter(x=df["Date"], y=df["MA50"], mode="lines", name="MA50", line=dict(width=2, dash="dash"), hovertemplate="%{x|%d %b %Y}<br>MA50: Rp %{y:,.0f}<extra></extra>"))
-    fig.update_layout(title=f"Pergerakan Harga {ticker_label}", height=520, template="plotly_dark", hovermode="x unified", margin=dict(l=10, r=10, t=45, b=10), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
-    fig.update_xaxes(title_text="Tanggal", showgrid=False)
-    fig.update_yaxes(title_text="Harga (Rp)", tickformat=",.0f")
-    return fig
+        fig.add_trace(go.Scatter(x=df["Date"], y=df["MA50"], mode="lines", name="MA50", line=dict(width=1.5, color="#f59e0b", dash="dash")))
+    return apply_clean_theme(fig, "Harga (Rp)")
 
 
 def plot_volume(df: pd.DataFrame, ticker_label: str):
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=df["Date"], y=df["Volume"], name="Volume", hovertemplate="%{x|%d %b %Y}<br>Volume: %{y:,.0f}<extra></extra>"))
-    fig.update_layout(title=f"Volume Perdagangan {ticker_label}", height=380, template="plotly_dark", margin=dict(l=10, r=10, t=45, b=10), showlegend=False)
-    fig.update_xaxes(title_text="Tanggal", showgrid=False)
-    fig.update_yaxes(title_text="Volume", tickformat=",.0f")
+    fig.add_trace(go.Bar(x=df["Date"], y=df["Volume"], name="Volume", marker_color="#0ea5e9", opacity=0.8))
+    fig = apply_clean_theme(fig, "Volume")
+    fig.update_layout(height=260, showlegend=False)
     return fig
 
 
 def plot_forecast_with_history(history_df: pd.DataFrame, forecast_df: pd.DataFrame):
     fig = go.Figure()
     if not history_df.empty:
-        fig.add_trace(go.Scatter(x=history_df["Date"], y=history_df["Close"], mode="lines", name="Historical Close", line=dict(width=2), hovertemplate="%{x|%d %b %Y}<br>Close: Rp %{y:,.0f}<extra></extra>"))
+        fig.add_trace(go.Scatter(x=history_df["Date"], y=history_df["Close"], mode="lines", name="Historical Close", line=dict(width=2, color="#94a3b8")))
     if not forecast_df.empty:
-        fig.add_trace(go.Scatter(x=forecast_df["Date"], y=forecast_df["Forecast"], mode="lines+markers", name="Forecast 30 Hari", line=dict(width=3, dash="dash"), hovertemplate="%{x|%d %b %Y}<br>Forecast: Rp %{y:,.0f}<extra></extra>"))
-    fig.update_layout(title="Forecast 30 Hari TLKM", height=520, template="plotly_dark", hovermode="x unified", margin=dict(l=10, r=10, t=45, b=10), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
-    fig.update_xaxes(title_text="Tanggal")
-    fig.update_yaxes(title_text="Harga (Rp)", tickformat=",.0f")
-    return fig
+        fig.add_trace(go.Scatter(x=forecast_df["Date"], y=forecast_df["Forecast"], mode="lines+markers", name="Forecast 30 Hari", line=dict(width=2.5, color="#6366f1"), marker=dict(size=5)))
+    return apply_clean_theme(fig, "Harga (Rp)")
 
 
 def plot_actual_vs_prediction(actual_pred: pd.DataFrame):
     fig = go.Figure()
     if not actual_pred.empty:
-        fig.add_trace(go.Scatter(y=actual_pred["Actual"], mode="lines", name="Actual", line=dict(width=2, color="#10b981"), hovertemplate="Index %{x}<br>Actual: Rp %{y:,.0f}<extra></extra>"))
-        fig.add_trace(go.Scatter(y=actual_pred["Prediction"], mode="lines", name="Prediction", line=dict(width=2, dash="dash", color="#6366f1"), hovertemplate="Index %{x}<br>Prediction: Rp %{y:,.0f}<extra></extra>"))
-    fig.update_layout(height=400, template="plotly_dark", hovermode="x unified", margin=dict(l=10, r=10, t=20, b=10), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
-    fig.update_xaxes(title_text="Observasi")
-    fig.update_yaxes(title_text="Nilai")
-    return fig
+        fig.add_trace(go.Scatter(y=actual_pred["Actual"], mode="lines", name="Actual", line=dict(width=2, color="#10b981")))
+        fig.add_trace(go.Scatter(y=actual_pred["Prediction"], mode="lines", name="Prediction", line=dict(width=2, color="#6366f1", dash="dash")))
+    return apply_clean_theme(fig, "Nilai Terskala", "Observasi")
 
 
 def plot_loss_history(loss_df: pd.DataFrame):
     fig = go.Figure()
     if not loss_df.empty:
-        fig.add_trace(go.Scatter(y=loss_df["loss"], mode="lines", name="Training Loss", line=dict(width=2, color="#3b82f6"), hovertemplate="Epoch %{x}<br>Loss: %{y:.6f}<extra></extra>"))
+        fig.add_trace(go.Scatter(y=loss_df["loss"], mode="lines", name="Training Loss", line=dict(width=2, color="#3b82f6")))
         if "val_loss" in loss_df.columns:
-            fig.add_trace(go.Scatter(y=loss_df["val_loss"], mode="lines", name="Validation Loss", line=dict(width=2, dash="dash", color="#f59e0b"), hovertemplate="Epoch %{x}<br>Val Loss: %{y:.6f}<extra></extra>"))
-    fig.update_layout(height=400, template="plotly_dark", hovermode="x unified", margin=dict(l=10, r=10, t=20, b=10), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
-    fig.update_xaxes(title_text="Epoch")
-    fig.update_yaxes(title_text="Loss")
-    return fig
-
-
-def show_fundamentals(ticker: str):
-    try:
-        info = yf.Ticker(ticker).info
-    except Exception:
-        info = {}
-    fields = {
-        "Long Name": info.get("longName"), "Market Cap": info.get("marketCap"),
-        "PE Ratio": info.get("trailingPE"), "Dividend Yield": info.get("dividendYield"),
-        "Beta": info.get("beta"), "52W High": info.get("fiftyTwoWeekHigh"),
-        "52W Low": info.get("fiftyTwoWeekLow"), "Currency": info.get("currency"),
-        "Sector": info.get("sector"), "Industry": info.get("industry"),
-    }
-    c1, c2 = st.columns(2)
-    items = list(fields.items())
-    for idx, (label, value) in enumerate(items):
-        col = c1 if idx % 2 == 0 else c2
-        with col:
-            if label == "Market Cap" and value is not None:
-                display_value = f"{value:,.0f}".replace(",", ".")
-            elif label == "Dividend Yield" and value is not None:
-                display_value = f"{value*100:.2f}%"
-            elif isinstance(value, float):
-                display_value = f"{value:.2f}"
-            else:
-                display_value = "-" if value is None else str(value)
-            st.metric(label, display_value)
-
-
-def sidebar_controls():
-    st.sidebar.title("Kontrol Dashboard")
-    period_label = st.sidebar.selectbox("Periode Historis", list(PERIOD_MAP.keys()), index=3)
-    compare = st.sidebar.multiselect("Saham pembanding", options=list(BENCHMARKS.keys()), default=["BBCA", "BBRI", "BMRI", "ASII"])
-    refresh_note = st.sidebar.checkbox("Auto refresh 60 detik", value=True)
-    if refresh_note and st_autorefresh is not None:
-        st.sidebar.success("Auto refresh aktif")
-    return period_label, compare
+            fig.add_trace(go.Scatter(y=loss_df["val_loss"], mode="lines", name="Validation Loss", line=dict(width=2, color="#f59e0b", dash="dash")))
+    return apply_clean_theme(fig, "Loss", "Epoch")
 
 
 def plot_benchmark(selected_tickers: list[str], period: str, interval: str):
@@ -311,30 +327,32 @@ def plot_benchmark(selected_tickers: list[str], period: str, interval: str):
         df["Normalized"] = (df["Close"] / first_close) * 100
         df["Ticker"] = label
         combined.append(df[["Date", "Normalized", "Ticker"]])
+
     if not combined:
         return None
     all_df = pd.concat(combined, ignore_index=True)
     fig = go.Figure()
     for label in all_df["Ticker"].unique():
         sub = all_df[all_df["Ticker"] == label]
-        fig.add_trace(go.Scatter(x=sub["Date"], y=sub["Normalized"], mode="lines", name=label, hovertemplate="%{x|%d %b %Y}<br>Normalized: %{y:.2f}<extra></extra>"))
-    fig.update_layout(title="Perbandingan Kinerja Terkumpul (Basis 100)", height=500, template="plotly_dark", hovermode="x unified", margin=dict(l=10, r=10, t=45, b=10), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0))
-    fig.update_xaxes(title_text="Tanggal")
-    fig.update_yaxes(title_text="Index Normalized")
-    return fig
+        is_focus = (label == "TLKM")
+        fig.add_trace(go.Scatter(x=sub["Date"], y=sub["Normalized"], mode="lines", name=label, line=dict(width=3 if is_focus else 1.5)))
+    return apply_clean_theme(fig, "Index Normalized")
 
 
 # =========================================================
-# DATA LOADING
+# LOAD DATA & CONTROLS
 # =========================================================
 metrics = load_json_metrics("metrics.json")
 forecast_df = load_csv("forecast.csv")
 actual_pred_df = load_csv("actual_vs_prediction.csv")
 loss_df = load_csv("loss_history.csv")
 
-period_label, compare_list = sidebar_controls()
+st.sidebar.title("Kontrol Dashboard")
+period_label = st.sidebar.selectbox("Periode Historis", list(PERIOD_MAP.keys()), index=3)
+compare_list = st.sidebar.multiselect("Saham Pembanding", options=list(BENCHMARKS.keys()), default=["BBCA", "BBRI", "BMRI", "ASII"])
 period, interval = PERIOD_MAP[period_label]
 
+# Fetch Live Data
 hist_df = download_data(PRIMARY_TICKER, period, interval)
 hist_df = add_indicators(hist_df) if not hist_df.empty else hist_df
 
@@ -342,6 +360,7 @@ if hist_df.empty:
     st.error("Data TLKM tidak tersedia saat ini.")
     st.stop()
 
+# Extract Variables
 latest_price = safe_latest(hist_df["Close"])
 prev_price = hist_df["Close"].iloc[-2] if len(hist_df) >= 2 else np.nan
 change_value, change_pct = compute_change(latest_price, prev_price)
@@ -362,68 +381,55 @@ signal, signal_desc = trading_signal(latest_rsi, latest_macd, latest_signal_line
 model_display_name = safe_get_metric(metrics, "model_name") or "Multivariate LSTM"
 
 # =========================================================
-# RENDER HEADER & METRICS TOP
+# UI RENDER
 # =========================================================
-st.title("TLKM Stock Forecast Dashboard")
+st.title("📈 TLKM Stock Forecast Dashboard")
 st.caption("Dashboard analisis, forecasting, dan pembanding saham Indonesia dengan fokus utama TLKM.")
-st.markdown(f"<span class='badge-live'>LIVE</span> <span class='muted'>&nbsp;Data diperbarui otomatis dan ditarik dari Yahoo Finance.</span>", unsafe_allow_html=True)
+st.markdown(f"<span class='badge-live'>LIVE</span> <span class='muted'>&nbsp;Data diperbarui otomatis dari Yahoo Finance.</span>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
+# Top KPI Cards
 m1, m2, m3, m4, m5 = st.columns(5)
-make_metric_card(m1, "Harga Saat Ini", fmt_idr(latest_price), fmt_num(change_value, 0), "Close terakhir dari data historis")
-make_metric_card(m2, "Perubahan Harian", fmt_pct(change_pct), None, "Perbandingan close terakhir dan sebelumnya")
-make_metric_card(m3, "Volume", f"{int(latest_volume):,}".replace(",", ".") if not pd.isna(latest_volume) else "-", None, "Volume perdagangan terakhir")
-make_metric_card(m4, "Sinyal", signal, None, signal_desc)
-make_metric_card(m5, "Model", model_display_name, None, "Model terbaik yang disimpan di metrics.json")
+m1.metric("Harga Saat Ini", fmt_idr(latest_price), fmt_num(change_value, 0))
+m2.metric("Perubahan Harian", fmt_pct(change_pct), f"{'+' if change_value >= 0 else ''}{fmt_num(change_value, 0)}")
+m3.metric("Volume", f"{int(latest_volume):,}".replace(",", ".") if not pd.isna(latest_volume) else "-")
+m4.metric("Sinyal", signal, help=signal_desc)
+m5.metric("Model Utama", model_display_name)
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
-# =========================================================
-# MAIN LAYOUT TABS
-# =========================================================
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "Historis & Forecast",
-    "Evaluasi Model",
-    "Fundamental TLKM",
-    "Perbandingan Saham",
-    "Data Mentah",
+# Tabs Navigation
+tab1, tab2, tab3, tab4 = st.tabs([
+    "📊 Historis & Forecast",
+    "🎯 Evaluasi Model",
+    "⚖️ Perbandingan Saham",
+    "🗂️ Data Mentah"
 ])
 
 with tab1:
     c1, c2 = st.columns([2, 1])
     with c1:
-        st.markdown("<div class='section-title'>Grafik Historis TLKM</div>", unsafe_allow_html=True)
+        st.subheader("📊 Grafik Historis TLKM")
         st.plotly_chart(plot_price_history(hist_df, "TLKM"), use_container_width=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Forecast 30 Hari ke Depan</div>", unsafe_allow_html=True)
+        
+        st.subheader("🔮 Forecast 30 Hari ke Depan")
         if forecast_df.empty:
-            st.warning("File outputs/forecast.csv belum ditemukan atau kosong.")
+            st.warning("File outputs/forecast.csv kosong/tidak ditemukan.")
         else:
-            forecast_df = forecast_df.copy()
             if "Date" in forecast_df.columns:
                 forecast_df["Date"] = pd.to_datetime(forecast_df["Date"], errors="coerce")
             st.plotly_chart(plot_forecast_with_history(hist_df.tail(120), forecast_df), use_container_width=True)
-
-            latest_fc = forecast_df["Forecast"].iloc[0] if not forecast_df.empty else np.nan
-            future_7 = forecast_df["Forecast"].iloc[6] if len(forecast_df) >= 7 else np.nan
-            future_30 = forecast_df["Forecast"].iloc[-1] if not forecast_df.empty else np.nan
-
+            
+            # Sub KPI Forecast
             fc1, fc2, fc3 = st.columns(3)
-            fc1.metric("Prediksi Hari Ini / Besok", fmt_idr(latest_fc))
-            fc2.metric("Prediksi 7 Hari", fmt_idr(future_7))
-            fc3.metric("Prediksi 30 Hari", fmt_idr(future_30))
-
-            st.dataframe(
-                forecast_df.assign(
-                    Date=forecast_df["Date"].dt.strftime("%d %b %Y") if "Date" in forecast_df.columns else forecast_df["Date"],
-                    Forecast=forecast_df["Forecast"].round(2),
-                ),
-                use_container_width=True,
-                hide_index=True,
-            )
-
+            fc1.metric("Prediksi Besok", fmt_idr(forecast_df["Forecast"].iloc[0] if not forecast_df.empty else np.nan))
+            fc2.metric("Prediksi 7 Hari", fmt_idr(forecast_df["Forecast"].iloc[6] if len(forecast_df) >= 7 else np.nan))
+            fc3.metric("Prediksi 30 Hari", fmt_idr(forecast_df["Forecast"].iloc[-1] if not forecast_df.empty else np.nan))
+            
+            st.dataframe(forecast_df, use_container_width=True, hide_index=True)
+    
     with c2:
-        st.markdown("<div class='section-title'>Ringkasan Harga</div>", unsafe_allow_html=True)
+        st.subheader("📌 Ringkasan Harga")
         with st.container(border=True):
             s1, s2 = st.columns(2)
             s1.metric("Open", fmt_idr(latest_open))
@@ -435,8 +441,8 @@ with tab1:
             s5, s6 = st.columns(2)
             s5.metric("52W High", fmt_idr(high_52w))
             s6.metric("52W Low", fmt_idr(low_52w))
-
-        st.markdown("<div class='section-title'>Indikator Teknis</div>", unsafe_allow_html=True)
+            
+        st.subheader("⚡ Indikator Teknis")
         with st.container(border=True):
             tech1, tech2 = st.columns(2)
             tech1.metric("RSI", fmt_num(latest_rsi, 2))
@@ -445,121 +451,64 @@ with tab1:
             tech3.metric("Signal Line", fmt_num(latest_signal_line, 4))
             tech4.metric("MA50", fmt_idr(latest_ma50))
             st.metric("MA20", fmt_idr(latest_ma20))
-
-        st.markdown("<div class='section-title'>Volume Perdagangan</div>", unsafe_allow_html=True)
+            
+        st.subheader("📈 Volume Perdagangan")
         st.plotly_chart(plot_volume(hist_df.tail(180), "TLKM"), use_container_width=True)
 
-
-# =========================================================
-# SUSUNAN TERBARU TAB EVALUASI MODEL (RESTRUCTURED!)
-# =========================================================
 with tab2:
-    # 1. INFORMASI MODEL
-    st.markdown("<div class='section-title'>ℹ️ Informasi Model</div>", unsafe_allow_html=True)
-    with st.container(border=True):
-        mi1, mi2, mi3, mi4 = st.columns(4)
-        mi1.metric("Model Utama", model_display_name)
-        mi2.metric("Epoch", str(safe_get_metric(metrics, "epochs") or "-"))
-        mi3.metric("Batch Size", str(safe_get_metric(metrics, "batch_size") or "-"))
-        mi4.metric("Lookback", str(safe_get_metric(metrics, "lookback") or "-"))
-        
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # 2. EVALUASI (MAE, RMSE, DLL)
-    st.markdown("<div class='section-title'>🎯 Evaluasi (MAE RMSE DLL)</div>", unsafe_allow_html=True)
-    with st.container(border=True):
-        em1, em2, em3, em4, em5 = st.columns(5)
-        em1.metric("MAE", fmt_num(safe_get_metric(metrics, "mae"), 4))
-        em2.metric("RMSE", fmt_num(safe_get_metric(metrics, "rmse"), 4))
-        em3.metric("MAPE", fmt_pct(safe_get_metric(metrics, "mape"), 2))
-        em4.metric("Accuracy", fmt_pct(safe_get_metric(metrics, "accuracy"), 2))
-        em5.metric("R²", fmt_num(safe_get_metric(metrics, "r2"), 4))
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # 3. ACTUAL PREDIKSI (SAMPINGNYA TABEL ACTUAL PREDIKSI)
-    st.markdown("<div class='section-title'>📊 Actual vs Prediction</div>", unsafe_allow_html=True)
-    if actual_pred_df.empty:
-        st.warning("File outputs/actual_vs_prediction.csv belum ditemukan atau kosong.")
-    else:
-        grid_ap1, grid_ap2 = st.columns([3, 2])
-        with grid_ap1:
+    e1, e2 = st.columns([1, 1])
+    with e1:
+        st.subheader("🎯 Evaluasi Model")
+        with st.container(border=True):
+            em1, em2, em3 = st.columns(3)
+            em1.metric("MAE", fmt_num(safe_get_metric(metrics, "mae"), 4))
+            em2.metric("RMSE", fmt_num(safe_get_metric(metrics, "rmse"), 4))
+            em3.metric("MAPE", fmt_pct(safe_get_metric(metrics, "mape"), 2))
+            em4, em5 = st.columns(2)
+            em4.metric("Accuracy", fmt_pct(safe_get_metric(metrics, "accuracy"), 2))
+            em5.metric("R²", fmt_num(safe_get_metric(metrics, "r2"), 4))
+            
+        st.subheader("ℹ️ Informasi Model")
+        with st.container(border=True):
+            mi1, mi2 = st.columns(2)
+            mi1.metric("Model", model_display_name)
+            mi2.metric("Epoch", str(safe_get_metric(metrics, "epochs") or "-"))
+            mi3, mi4 = st.columns(2)
+            mi3.metric("Batch Size", str(safe_get_metric(metrics, "batch_size") or "-"))
+            mi4.metric("Lookback", str(safe_get_metric(metrics, "lookback") or "-"))
+            
+    with e2:
+        st.subheader("📉 Actual vs Prediction")
+        if actual_pred_df.empty:
+            st.warning("File outputs/actual_vs_prediction.csv kosong/tidak ditemukan.")
+        else:
             st.plotly_chart(plot_actual_vs_prediction(actual_pred_df), use_container_width=True)
-        with grid_ap2:
-            st.markdown("<div style='margin-bottom: 5px; font-weight:600; font-size:0.9rem;'>📋 Tabel Nilai Actual & Prediksi</div>", unsafe_allow_html=True)
-            st.dataframe(actual_pred_df, use_container_width=True, height=375)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # 4. TRAINING LOSS VAL LOSS (SAMPINGNYA TABEL TRAIN LOSS VAL LOSS)
-    st.markdown("<div class='section-title'>📉 Kurva Training & Validation Loss</div>", unsafe_allow_html=True)
-    if loss_df.empty:
-        st.warning("File outputs/loss_history.csv belum ditemukan atau kosong.")
-    else:
-        grid_loss1, grid_loss2 = st.columns([3, 2])
-        with grid_loss1:
+            st.dataframe(actual_pred_df.head(25), use_container_width=True, hide_index=True)
+            
+        st.subheader("📉 Training Loss")
+        if loss_df.empty:
+            st.warning("File outputs/loss_history.csv kosong/tidak ditemukan.")
+        else:
             st.plotly_chart(plot_loss_history(loss_df), use_container_width=True)
-        with grid_loss2:
-            st.markdown("<div style='margin-bottom: 5px; font-weight:600; font-size:0.9rem;'>📋 Tabel History Loss per Epoch</div>", unsafe_allow_html=True)
-            st.dataframe(loss_df, use_container_width=True, height=375)
-
 
 with tab3:
-    st.markdown("<div class='section-title'>Fundamental TLKM</div>", unsafe_allow_html=True)
-    st.caption("Data ini diambil dari Yahoo Finance melalui yfinance. Nilai bisa berubah sesuai ketersediaan data.")
-    show_fundamentals(PRIMARY_TICKER)
-
-with tab4:
-    st.markdown("<div class='section-title'>Perbandingan Kinerja Saham</div>", unsafe_allow_html=True)
-    st.caption("TLKM tetap menjadi fokus utama. Grafik berikut membandingkan kinerja harga yang dinormalisasi terhadap saham lain.")
-    selected = [(k, BENCHMARKS[k]) for k in compare_list]
-    selected.insert(0, ("TLKM", PRIMARY_TICKER))
+    st.subheader("⚖️ Perbandingan Kinerja Saham")
+    selected = [(k, BENCHMARKS[k]) for k in compare_list if k in BENCHMARKS]
+    if ("TLKM", PRIMARY_TICKER) not in selected:
+        selected.insert(0, ("TLKM", PRIMARY_TICKER))
     bench_fig = plot_benchmark(selected, period, interval)
     if bench_fig is None:
-        st.warning("Data pembanding belum tersedia.")
+        st.warning("Data pembanding gagal dimuat.")
     else:
         st.plotly_chart(bench_fig, use_container_width=True)
 
-    st.markdown("### Ringkasan perbandingan")
-    bench_rows = []
-    for label, ticker in selected:
-        d = download_data(ticker, period, interval)
-        if d.empty:
-            continue
-        d = d.dropna(subset=["Close"]).copy()
-        if d.empty:
-            continue
-        first_close = d["Close"].iloc[0]
-        last_close = d["Close"].iloc[-1]
-        diff, pct = compute_change(last_close, first_close)
-        bench_rows.append({"Ticker": label, "First Close": first_close, "Last Close": last_close, "Change": diff, "Change %": pct})
-
-    if bench_rows:
-        bench_df = pd.DataFrame(bench_rows)
-        st.dataframe(
-            bench_df.assign(
-                **{
-                    "First Close": bench_df["First Close"].map(fmt_idr),
-                    "Last Close": bench_df["Last Close"].map(fmt_idr),
-                    "Change": bench_df["Change"].map(lambda x: fmt_idr(x) if pd.notna(x) else "-"),
-                    "Change %": bench_df["Change %"].map(fmt_pct),
-                }
-            ),
-            use_container_width=True,
-            hide_index=True,
-        )
-
-with tab5:
-    st.markdown("<div class='section-title'>Data Mentah Historis TLKM</div>", unsafe_allow_html=True)
+with tab4:
+    st.subheader("🗂️ Data Mentah Historis TLKM")
     preview_cols = [c for c in ["Date", "Open", "High", "Low", "Close", "Volume", "RSI", "MACD", "MA20", "MA50"] if c in hist_df.columns]
     show_df = hist_df[preview_cols].copy()
     if "Date" in show_df.columns:
         show_df["Date"] = show_df["Date"].dt.strftime("%d %b %Y")
     st.dataframe(show_df.tail(100), use_container_width=True, hide_index=True)
 
-# =========================================================
-# FOOTER
-# =========================================================
 st.divider()
-last_update = hist_df["Date"].iloc[-1]
-st.caption(f"Last update: {last_update.strftime('%d %b %Y') if pd.notna(last_update) else '-'} | Source: Yahoo Finance | Interval: {interval} | Focus: TLKM")
+st.caption(f"Source: Yahoo Finance | Focus: {PRIMARY_TICKER}")
