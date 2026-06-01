@@ -457,7 +457,7 @@ def sidebar_controls():
 # =========================================================
 # LOAD DATA OUTPUTS
 # =========================================================
-metrics = load_json_metrics("models/metrics.json")
+metrics = load_json_metrics("metrics.json")
 forecast_df = load_csv("forecast.csv")
 actual_pred_df = load_csv("actual_vs_prediction.csv")
 loss_df = load_csv("loss_history.csv")
