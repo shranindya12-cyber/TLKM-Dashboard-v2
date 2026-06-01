@@ -27,7 +27,7 @@ if st_autorefresh is not None:
     st_autorefresh(interval=60_000, key="dashboard_refresh")
 
 # =========================================================
-# COMPACT STYLE & CUSTOM CSS (Mengurangi Semua Spasi Kosong)
+# COMPACT STYLE & CUSTOM CSS (Perbaikan Judul Kepotong)
 # =========================================================
 st.markdown(
     """
@@ -38,13 +38,13 @@ st.markdown(
             font-family: 'Inter', sans-serif;
         }
         
-        /* Memangkas jarak kosong atas-bawah halaman utama */
+        /* Memberikan ruang di atas judul agar tidak mentok/kepotong menu atas */
         .block-container { 
-            padding-top: 1rem !important; 
+            padding-top: 3.5rem !important; 
             padding-bottom: 1rem !important; 
         }
         
-        /* Mengecilkan gap antar element bawaan streamlit */
+        /* Jarak antar element vertikal tetap rapat */
         [data-testid="stVerticalBlock"] {
             gap: 0.5rem !important;
         }
@@ -71,7 +71,7 @@ st.markdown(
         
         .muted { color: #64748b; font-size: 0.9rem; }
         
-        /* Container Bergaya Card Baku Lebih Tipis Spasinya */
+        /* Container Bergaya Card Baku */
         .card-soft {
             background: rgba(148, 163, 184, 0.02);
             border: 1px solid rgba(148, 163, 184, 0.12);
@@ -138,7 +138,6 @@ st.markdown(
             font-weight: 600;
         }
         
-        /* Memotong margin bawah pembatas hr bawaan streamlit */
         hr {
             margin-top: 0.75rem !important;
             margin-bottom: 0.75rem !important;
@@ -295,14 +294,14 @@ def trading_signal(rsi: float, macd: float, signal_line: float, close: float, ma
 
 
 # =========================================================
-# CONFIG PLOTLY THEMES (Margin Sangat Ketat)
+# CONFIG PLOTLY THEMES
 # =========================================================
 def apply_clean_theme(fig, y_title, x_title="Tanggal"):
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         hovermode="x unified",
-        margin=dict(l=10, r=10, t=15, b=10),  # Top dipersempit ke 15 agar tidak ada gap atas grafik
+        margin=dict(l=10, r=10, t=15, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0),
     )
     fig.update_xaxes(title_text=x_title, showgrid=False)
@@ -411,7 +410,7 @@ if hist_df.empty:
     st.error("Data TLKM tidak tersedia saat ini.")
     st.stop()
 
-# Metrics Calculations
+# Calculations
 latest_price = safe_latest(hist_df["Close"])
 prev_price = hist_df["Close"].iloc[-2] if len(hist_df) >= 2 else np.nan
 change_value, change_pct = compute_change(latest_price, prev_price)
@@ -448,15 +447,16 @@ m3.metric("Volume Harian", f"{int(latest_volume):,}".replace(",", ".") if not pd
 m4.metric("Sinyal Sistem", signal, help=signal_desc)
 m5.metric("Model Analitik", model_display_name)
 
-# Navigation Tabs (Tanpa br/jarak kosong berlebih)
-tab1, tab2, tab3 = st.tabs([
+# Navigation Tabs (Ditambah Tab Data Mentah di paling kanan)
+tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Analisis Historis & Volume",
     "🔮 Forecast & Evaluasi Model",
     "⚖️ Perbandingan Saham",
+    "🗂️ Data Mentah (Historical Data)"
 ])
 
 # ---------------------------------------------------------
-# TAB 1: ANALISIS HISTORIS & VOLUME (VERTIKAL RAPAT)
+# TAB 1: ANALISIS HISTORIS & VOLUME
 # ---------------------------------------------------------
 with tab1:
     st.markdown("<div class='section-title'>📌 Ringkasan Harga Saat Ini</div>", unsafe_allow_html=True)
@@ -493,10 +493,9 @@ with tab1:
 
 
 # ---------------------------------------------------------
-# TAB 2: FORECAST & EVALUASI MODEL (DIGABUNGKAN - SANGAT PADAT)
+# TAB 2: FORECAST & EVALUASI MODEL
 # ---------------------------------------------------------
 with tab2:
-    # 1. Informasi Model
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>ℹ️ Informasi Arsitektur Model</div>", unsafe_allow_html=True)
     mi1, mi2, mi3, mi4 = st.columns(4)
@@ -506,7 +505,6 @@ with tab2:
     mi4.metric("Lookback (Window)", str(metrics.get("lookback", "-")))
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 2. Nilai Prediksi Horizon KPI Cards
     st.markdown("<div class='section-title'>🎯 Nilai Prediksi Horizon Kedepan</div>", unsafe_allow_html=True)
     with st.container(border=True):
         if not forecast_df.empty:
@@ -517,7 +515,6 @@ with tab2:
         else:
             st.write("Data forecast tidak tersedia.")
 
-    # 3. Grafik Prediksi 30 Hari Ke Depan
     st.markdown("<div class='section-title'>🔮 Grafik Forecast 30 Hari ke Depan</div>", unsafe_allow_html=True)
     if forecast_df.empty:
         st.warning("File forecast.csv kosong atau tidak ditemukan.")
@@ -526,7 +523,6 @@ with tab2:
             forecast_df["Date"] = pd.to_datetime(forecast_df["Date"], errors="coerce")
         st.plotly_chart(plot_forecast_with_history(hist_df.tail(90), forecast_df), width="stretch")
 
-    # 4. Tabel Prediksi Dataframe
     st.markdown("<div class='section-title'>📋 Detail Tabel Hasil Forecast</div>", unsafe_allow_html=True)
     if not forecast_df.empty:
         formatted_forecast = forecast_df.copy()
@@ -536,7 +532,6 @@ with tab2:
 
     st.divider()
 
-    # 5. Evaluasi Metrik Model (MAE, RMSE, dll.)
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>🎯 Metrik Evaluasi Performa Model</div>", unsafe_allow_html=True)
     em1, em2, em3, em4, em5 = st.columns(5)
@@ -547,7 +542,6 @@ with tab2:
     em5.metric("R² Score", fmt_num(metrics.get("r2"), 4))
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 6. Grafik Actual vs Prediction & Tabel Pembantu
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>📊 Visualisasi Validasi: Actual vs Prediction</div>", unsafe_allow_html=True)
     if actual_pred_df.empty:
@@ -560,7 +554,6 @@ with tab2:
             st.dataframe(actual_pred_df, use_container_width=True, height=260)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 7. Kurva History Loss
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>📉 Kurva Pelatihan Model (Training & Validation Loss)</div>", unsafe_allow_html=True)
     if loss_df.empty:
@@ -579,7 +572,6 @@ with tab2:
 # ---------------------------------------------------------
 with tab3:
     st.subheader("⚖️ Perbandingan Kinerja Relatif")
-    
     selected = [(k, BENCHMARKS[k]) for k in compare_list if k in BENCHMARKS]
     if ("TLKM", PRIMARY_TICKER) not in selected:
         selected.insert(0, ("TLKM", PRIMARY_TICKER))
@@ -589,6 +581,25 @@ with tab3:
         st.warning("Data saham pembanding tidak berhasil dimuat.")
     else:
         st.plotly_chart(bench_fig, width="stretch")
+
+
+# ---------------------------------------------------------
+# TAB 4: DATA MENTAH (HISTORICAL DATA)
+# ---------------------------------------------------------
+with tab4:
+    st.markdown("<div class='section-title'>🗂️ Data Mentah Hasil Unduhan (Yahoo Finance)</div>", unsafe_allow_html=True)
+    st.caption("Menampilkan lembar data mentah lengkap beserta seluruh indikator kalkulasi teknikal.")
+    
+    # Format penyajian tanggal agar nyaman dibaca di dataframe mentah
+    raw_display_df = hist_df.copy()
+    if "Date" in raw_display_df.columns:
+        raw_display_df["Date"] = raw_display_df["Date"].dt.strftime("%Y-%m-%d %H:%M:%S" if interval in ["1m","5m","15m","1h"] else "%Y-%m-%d")
+        
+    st.dataframe(
+        raw_display_df.sort_values(by="Date", ascending=False), 
+        use_container_width=True, 
+        height=500
+    )
 
 
 # Footer branding
