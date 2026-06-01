@@ -27,7 +27,7 @@ if st_autorefresh is not None:
     st_autorefresh(interval=60_000, key="dashboard_refresh")
 
 # =========================================================
-# PREMIUM STYLE WITH STREAMLIT COMPATIBILITY
+# CLEAN STYLE (Tanpa Kotak Kustom HTML)
 # =========================================================
 st.markdown(
     """
@@ -43,17 +43,7 @@ st.markdown(
             padding-bottom: 2rem; 
         }
         
-        /* Container Card Utama - Menggunakan border tipis & transparansi adaptif */
-        .card-soft {
-            background-color: rgba(15, 23, 42, 0.05) !important;
-            border: 1px solid rgba(148, 163, 184, 0.2) !important;
-            border-radius: 14px !important;
-            padding: 22px !important;
-            margin-bottom: 1.5rem !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
-        }
-        
-        /* Maksa Warna Metric Card bawaan Streamlit agar konsisten */
+        /* Desain Metric Card bawaan agar sedikit rapi tanpa background kaku */
         div[data-testid="stMetric"] {
             border: 1px solid rgba(148, 163, 184, 0.2) !important;
             padding: 15px 20px !important;
@@ -272,11 +262,10 @@ def make_metric_card(col, label, value, delta=None, help_text=None):
 
 
 # =========================================================
-# CONFIG TEMPLATE PLOTLY VISUAL (Adaptif Tema Terang/Gelap)
+# CONFIG TEMPLATE PLOTLY VISUAL (Mengikuti Tema Browser)
 # =========================================================
 def apply_clean_theme(fig, y_title, x_title="Tanggal"):
     fig.update_layout(
-        template="plotly_white",  # Fleksibel mengikuti grafik putih/terang bawaan
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         hovermode="x unified",
@@ -556,7 +545,7 @@ make_metric_card(m5, "Model Utama", metrics.get("model_name", "Multivariate LSTM
 st.markdown("<br>", unsafe_allow_html=True)
 
 # =========================================================
-# MAIN LAYOUT WITH NATIVE HEADERS (Garis Judul Otomatis)
+# MAIN LAYOUT (Menggunakan Subheader Asli Streamlit)
 # =========================================================
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Historis & Forecast",
@@ -570,12 +559,10 @@ with tab1:
     c1, c2 = st.columns([2, 1])
 
     with c1:
-        st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.subheader("📊 Grafik Historis TLKM") # NATIVE SUBHEADER (Auto Terang / Gelap)
+        st.subheader("📊 Grafik Historis TLKM")
         st.plotly_chart(plot_price_history(hist_df, "TLKM"), use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
         st.subheader("🔮 Forecast 30 Hari ke Depan")
         if forecast_df.empty:
             st.warning("File outputs/forecast.csv belum ditemukan atau kosong.")
@@ -603,10 +590,8 @@ with tab1:
                 use_container_width=True,
                 hide_index=True,
             )
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with c2:
-        st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
         st.subheader("📌 Ringkasan Harga")
         s1, s2 = st.columns(2)
         s1.metric("Open", fmt_idr(latest_open))
@@ -617,9 +602,8 @@ with tab1:
         s5, s6 = st.columns(2)
         s5.metric("52W High", fmt_idr(high_52w))
         s6.metric("52W Low", fmt_idr(low_52w))
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
         st.subheader("⚡ Indikator Teknis")
         tech1, tech2 = st.columns(2)
         tech1.metric("RSI", fmt_num(latest_rsi, 2))
@@ -628,20 +612,16 @@ with tab1:
         tech3.metric("Signal Line", fmt_num(latest_signal_line, 4))
         tech4.metric("MA50", fmt_idr(latest_ma50))
         st.metric("MA20", fmt_idr(latest_ma20))
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
         st.subheader("📈 Volume Perdagangan")
         st.plotly_chart(plot_volume(hist_df.tail(180), "TLKM"), use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
 with tab2:
     e1, e2 = st.columns([1, 1])
 
     with e1:
-        st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
         st.subheader("🎯 Evaluasi Model")
-
         em1, em2, em3 = st.columns(3)
         em1.metric("MAE", fmt_num(metrics.get("mae"), 4))
         em2.metric("RMSE", fmt_num(metrics.get("rmse"), 4))
@@ -650,9 +630,8 @@ with tab2:
         em4, em5 = st.columns(2)
         em4.metric("Accuracy", fmt_pct(metrics.get("accuracy"), 2))
         em5.metric("R²", fmt_num(metrics.get("r2"), 4))
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
         st.subheader("ℹ️ Informasi Model")
         model_name = metrics.get("model_name", "Multivariate LSTM")
         epochs = metrics.get("epochs", "-")
@@ -665,36 +644,29 @@ with tab2:
         mi3, mi4 = st.columns(2)
         mi3.metric("Batch Size", str(batch_size))
         mi4.metric("Lookback", str(lookback))
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with e2:
-        st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
         st.subheader("📉 Actual vs Prediction")
         if actual_pred_df.empty:
             st.warning("File outputs/actual_vs_prediction.csv belum ditemukan atau kosong.")
         else:
             st.plotly_chart(plot_actual_vs_prediction(actual_pred_df), use_container_width=True)
             st.dataframe(actual_pred_df.head(25), use_container_width=True, hide_index=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
         st.subheader("📉 Training Loss")
         if loss_df.empty:
             st.warning("File outputs/loss_history.csv belum ditemukan atau kosong.")
         else:
             st.plotly_chart(plot_loss_history(loss_df), use_container_width=True)
             st.dataframe(loss_df.head(25), use_container_width=True, hide_index=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
 with tab3:
-    st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.subheader("🏢 Fundamental Saham TLKM")
     st.caption("Data ini diambil dari Yahoo Finance melalui yfinance. Nilai bisa berubah sesuai ketersediaan data.")
     show_fundamentals(PRIMARY_TICKER)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 with tab4:
-    st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.subheader("⚖️ Perbandingan Kinerja Saham")
     st.caption("TLKM tetap menjadi fokus utama. Grafik berikut membandingkan kinerja harga yang dinormalisasi terhadap saham lain.")
     selected = [(k, BENCHMARKS[k]) for k in compare_list]
@@ -742,17 +714,14 @@ with tab4:
             use_container_width=True,
             hide_index=True,
         )
-    st.markdown("</div>", unsafe_allow_html=True)
 
 with tab5:
-    st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.subheader("🗂️ Data Mentah Historis TLKM")
     preview_cols = [c for c in ["Date", "Open", "High", "Low", "Close", "Volume", "RSI", "MACD", "MA20", "MA50"] if c in hist_df.columns]
     show_df = hist_df[preview_cols].copy()
     if "Date" in show_df.columns:
         show_df["Date"] = show_df["Date"].dt.strftime("%d %b %Y")
     st.dataframe(show_df.tail(100), use_container_width=True, hide_index=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
 # FOOTER
