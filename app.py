@@ -236,13 +236,6 @@ def load_csv(path: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def safe_get_metric(metrics_dict: dict, key: str):
-    val = metrics_dict.get(key.lower())
-    if val is None:
-        val = metrics_dict.get(key.upper())
-    return val
-
-
 def safe_latest(series: pd.Series, default=np.nan):
     try:
         s = series.dropna()
@@ -431,7 +424,6 @@ latest_ma50 = safe_latest(hist_df["MA50"])
 latest_ma20 = safe_latest(hist_df["MA20"])
 
 signal, signal_desc = trading_signal(latest_rsi, latest_macd, latest_signal_line, latest_price, latest_ma50)
-model_display_name = safe_get_metric(metrics, "model_name") or "LSTM"
 
 # =========================================================
 # UI LAYOUT RENDERER
@@ -439,15 +431,15 @@ model_display_name = safe_get_metric(metrics, "model_name") or "LSTM"
 st.title("📈 TLKM Stock Forecast Dashboard")
 st.markdown(f"<span class='badge-live'>LIVE</span> <span class='muted'>&nbsp;Data diperbarui otomatis dari Yahoo Finance.</span>", unsafe_allow_html=True)
 
-# Main Dashboard Top Row KPI Cards
+# Main Dashboard Top Row KPI Cards - FORCE DISPLAY TO "LSTM"
 m1, m2, m3, m4, m5 = st.columns(5)
 m1.metric("Harga Saat Ini", fmt_idr(latest_price), fmt_num(change_value, 0))
 m2.metric("Perubahan Harian", fmt_pct(change_pct), f"{'+' if change_value >= 0 else ''}{fmt_num(change_value, 0)}")
 m3.metric("Volume Harian", f"{int(latest_volume):,}".replace(",", ".") if not pd.isna(latest_volume) else "-")
 m4.metric("Sinyal Sistem", signal, help=signal_desc)
-m5.metric("Model Analitik", model_display_name)
+m5.metric("Model Analitik", "LSTM")
 
-# Navigation Tabs (Ditambah Tab Data Mentah di paling kanan)
+# Navigation Tabs
 tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Analisis Historis & Volume",
     "🔮 Forecast & Evaluasi Model",
@@ -499,7 +491,7 @@ with tab2:
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>ℹ️ Informasi Arsitektur Model</div>", unsafe_allow_html=True)
     mi1, mi2, mi3, mi4 = st.columns(4)
-    mi1.metric("Model Utama", metrics.get("model_name", "LSTM"))
+    mi1.metric("Model Utama", "LSTM")  # FORCE DISPLAY TO "LSTM"
     mi2.metric("Epochs Train", str(metrics.get("epochs", "-")))
     mi3.metric("Batch Size", str(metrics.get("batch_size", "-")))
     mi4.metric("Lookback (Window)", str(metrics.get("lookback", "-")))
@@ -590,7 +582,6 @@ with tab4:
     st.markdown("<div class='section-title'>🗂️ Data Mentah Hasil Unduhan (Yahoo Finance)</div>", unsafe_allow_html=True)
     st.caption("Menampilkan lembar data mentah lengkap beserta seluruh indikator kalkulasi teknikal.")
     
-    # Format penyajian tanggal agar nyaman dibaca di dataframe mentah
     raw_display_df = hist_df.copy()
     if "Date" in raw_display_df.columns:
         raw_display_df["Date"] = raw_display_df["Date"].dt.strftime("%Y-%m-%d %H:%M:%S" if interval in ["1m","5m","15m","1h"] else "%Y-%m-%d")
