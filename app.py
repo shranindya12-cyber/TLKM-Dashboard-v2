@@ -493,8 +493,7 @@ latest_signal_line = safe_latest(hist_df["Signal_Line"]) if "Signal_Line" in his
 latest_ma50 = safe_latest(hist_df["MA50"]) if "MA50" in hist_df.columns else np.nan
 latest_ma20 = safe_latest(hist_df["MA20"]) if "MA20" in hist_df.columns else np.nan
 
-# Penanganan pembacaan model_name fleksibel huruf besar/kecil
-model_display_name = metrics.get("model_name", metrics.get("MODEL_NAME", "Multivariate LSTM"))
+model_display_name = metrics.get("model_name", "Multivariate LSTM")
 
 signal, signal_desc = trading_signal(
     latest_rsi,
@@ -596,3 +595,128 @@ with tab1:
         tech3.metric("Signal Line", fmt_num(latest_signal_line, 4))
         tech4.metric("MA50", fmt_idr(latest_ma50))
         st.metric("MA20", fmt_idr(latest_ma20))
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        st.subheader("📈 Volume Perdagangan")
+        st.plotly_chart(plot_volume(hist_df.tail(180), "TLKM"), use_container_width=True)
+
+with tab2:
+    e1, e2 = st.columns([1, 1])
+
+    with e1:
+        st.subheader("🎯 Evaluasi Model")
+        
+        # Sesuai dengan berkas JSON Anda yang menggunakan huruf kecil
+        mae_val = metrics.get("mae")
+        rmse_val = metrics.get("rmse")
+        mape_val = metrics.get("mape")
+        acc_val = metrics.get("accuracy")
+        r2_val = metrics.get("r2")
+
+        em1, em2, em3 = st.columns(3)
+        em1.metric("MAE", fmt_num(mae_val, 4))
+        em2.metric("RMSE", fmt_num(rmse_val, 4))
+        em3.metric("MAPE", fmt_pct(mape_val, 2) if mape_val is not None else "-")
+
+        em4, em5 = st.columns(2)
+        em4.metric("Accuracy", fmt_pct(acc_val, 2) if acc_val is not None else "-")
+        em5.metric("R²", fmt_num(r2_val, 4))
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        st.subheader("ℹ️ Informasi Model")
+        epochs = metrics.get("epochs", "-")
+        batch_size = metrics.get("batch_size", "-")
+        lookback = metrics.get("lookback", "-")
+
+        mi1, mi2 = st.columns(2)
+        mi1.metric("Model", model_display_name)
+        mi2.metric("Epoch", str(epochs))
+        mi3, mi4 = st.columns(2)
+        mi3.metric("Batch Size", str(batch_size))
+        mi4.metric("Lookback", str(lookback))
+
+    with e2:
+        st.subheader("📉 Actual vs Prediction")
+        if actual_pred_df.empty:
+            st.warning("File outputs/actual_vs_prediction.csv belum ditemukan atau kosong.")
+        else:
+            st.plotly_chart(plot_actual_vs_prediction(actual_pred_df), use_container_width=True)
+            st.dataframe(actual_pred_df.head(25), use_container_width=True, hide_index=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        st.subheader("📉 Training Loss")
+        if loss_df.empty:
+            st.warning("File outputs/loss_history.csv belum ditemukan atau kosong.")
+        else:
+            st.plotly_chart(plot_loss_history(loss_df), use_container_width=True)
+            st.dataframe(loss_df.head(25), use_container_width=True, hide_index=True)
+
+with tab3:
+    st.subheader("⚖️ Perbandingan Kinerja Saham")
+    st.caption("TLKM tetap menjadi fokus utama. Grafik berikut membandingkan kinerja harga yang dinormalisasi terhadap saham pembanding pilihanmu.")
+    selected = [(k, BENCHMARKS[k]) for k in compare_list if k in BENCHMARKS]
+    
+    if ("TLKM", PRIMARY_TICKER) not in selected:
+        selected.insert(0, ("TLKM", PRIMARY_TICKER))
+        
+    bench_fig = plot_benchmark(selected, period, interval)
+    if bench_fig is None:
+        st.warning("Data pembanding belum tersedia atau gagal dimuat.")
+    else:
+        st.plotly_chart(bench_fig, use_container_width=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("📋 Ringkasan Perbandingan")
+    bench_rows = []
+    for label, ticker in selected:
+        d = download_data(ticker, period, interval)
+        if d.empty:
+            continue
+        d = d.dropna(subset=["Close"]).copy()
+        if d.empty:
+            continue
+        first_close = d["Close"].iloc[0]
+        last_close = d["Close"].iloc[-1]
+        diff, pct = compute_change(last_close, first_close)
+        bench_rows.append(
+            {
+                "Ticker": label,
+                "First Close": first_close,
+                "Last Close": last_close,
+                "Change": diff,
+                "Change %": pct,
+            }
+        )
+
+    if bench_rows:
+        bench_df = pd.DataFrame(bench_rows)
+        st.dataframe(
+            bench_df.assign(
+                **{
+                    "First Close": bench_df["First Close"].map(fmt_idr),
+                    "Last Close": bench_df["Last Close"].map(fmt_idr),
+                    "Change": bench_df["Change"].map(lambda x: fmt_idr(x) if pd.notna(x) else "-"),
+                    "Change %": bench_df["Change %"].map(fmt_pct),
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+with tab4:
+    st.subheader("🗂️ Data Mentah Historis TLKM")
+    preview_cols = [c for c in ["Date", "Open", "High", "Low", "Close", "Volume", "RSI", "MACD", "MA20", "MA50"] if c in hist_df.columns]
+    show_df = hist_df[preview_cols].copy()
+    if "Date" in show_df.columns:
+        show_df["Date"] = show_df["Date"].dt.strftime("%d %b %Y")
+    st.dataframe(show_df.tail(100), use_container_width=True, hide_index=True)
+
+# =========================================================
+# FOOTER
+# =========================================================
+st.markdown("<br>", unsafe_allow_html=True)
+last_update = hist_df["Date"].iloc[-1]
+st.caption(
+    f"Last update: {last_update.strftime('%d %b %Y') if pd.notna(last_update) else '-'} | "
+    f"Source: Yahoo Finance | Interval: {interval} | Focus: TLKM"
+)
