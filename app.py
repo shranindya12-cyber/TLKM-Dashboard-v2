@@ -492,9 +492,9 @@ def sidebar_controls():
 # LOAD OUTPUTS
 # =========================================================
 metrics = load_json_metrics("models/metrics.json")
-forecast_df = load_csv("outputs/forecast.csv")
-actual_pred_df = load_csv("outputs/actual_vs_prediction.csv")
-loss_df = load_csv("outputs/loss_history.csv")
+forecast_df = load_csv("forecast.csv")
+actual_pred_df = load_csv("actual_vs_prediction.csv")
+loss_df = load_csv("loss_history.csv")
 
 
 # =========================================================
@@ -582,7 +582,7 @@ with tab1:
         st.markdown("<div class='card-soft' style='margin-top: 1rem;'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'>Forecast 30 Hari ke Depan</div>", unsafe_allow_html=True)
         if forecast_df.empty:
-            st.warning("File outputs/forecast.csv belum ditemukan atau kosong.")
+            st.warning("File forecast.csv belum ditemukan atau kosong.")
         else:
             forecast_df = forecast_df.copy()
             if "Date" in forecast_df.columns:
@@ -675,7 +675,7 @@ with tab2:
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'>Actual vs Prediction</div>", unsafe_allow_html=True)
         if actual_pred_df.empty:
-            st.warning("File outputs/actual_vs_prediction.csv belum ditemukan atau kosong.")
+            st.warning("File actual_vs_prediction.csv belum ditemukan atau kosong.")
         else:
             st.plotly_chart(plot_actual_vs_prediction(actual_pred_df), use_container_width=True)
             st.dataframe(actual_pred_df.head(25), use_container_width=True, hide_index=True)
@@ -684,7 +684,7 @@ with tab2:
         st.markdown("<div class='card-soft' style='margin-top: 1rem;'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'>Training Loss</div>", unsafe_allow_html=True)
         if loss_df.empty:
-            st.warning("File outputs/loss_history.csv belum ditemukan atau kosong.")
+            st.warning("File loss_history.csv belum ditemukan atau kosong.")
         else:
             st.plotly_chart(plot_loss_history(loss_df), use_container_width=True)
             st.dataframe(loss_df.head(25), use_container_width=True, hide_index=True)
