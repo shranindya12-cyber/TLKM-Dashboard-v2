@@ -1,9 +1,7 @@
 streamlit
-streamlit-autorefresh
 plotly
 pandas
 numpy
 yfinance
 scikit-learn
 joblib
-tensorflow-cpu
