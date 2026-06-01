@@ -395,7 +395,7 @@ latest_ma50 = safe_latest(hist_df["MA50"])
 latest_ma20 = safe_latest(hist_df["MA20"])
 
 signal, signal_desc = trading_signal(latest_rsi, latest_macd, latest_signal_line, latest_price, latest_ma50)
-model_display_name = safe_get_metric(metrics, "model_name") or "Multivariate LSTM"
+model_display_name = safe_get_metric(metrics, "model_name") or "LSTM"
 
 # =========================================================
 # UI RENDER
@@ -476,7 +476,7 @@ with tab2:
     # 1. INFORMASI MODEL
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>ℹ️ Informasi Model</div>", unsafe_allow_html=True)
-    model_name = metrics.get("model_name", "Multivariate LSTM")
+    model_name = metrics.get("model_name", "LSTM")
     epochs = metrics.get("epochs", "-")
     batch_size = metrics.get("batch_size", "-")
     lookback = metrics.get("lookback", "-")
