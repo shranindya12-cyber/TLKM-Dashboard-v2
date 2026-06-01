@@ -415,7 +415,7 @@ m5.metric("Model Utama", model_display_name)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Tabs Navigation (TERPISAH SESUAI PERMINTAAN)
+# Tabs Navigation (TERPISAH & LEBIH BERSIH)
 tab1, tab1_fc, tab2, tab3, tab4 = st.tabs([
     "Grafik Historis",
     "Forecast",
@@ -429,7 +429,7 @@ with tab1:
     c1, c2 = st.columns([2, 1])
     with c1:
         st.subheader("📊 Grafik Historis TLKM")
-        st.plotly_chart(plot_price_history(hist_df, "TLKM"), use_container_width=True)
+        st.plotly_chart(plot_price_history(hist_df, "TLKM"), width="stretch")
         
     with c2:
         st.subheader("📌 Ringkasan Harga")
@@ -461,29 +461,29 @@ with tab1_fc:
     with fc_left:
         st.subheader("🔮 Forecast 30 Hari ke Depan")
         if forecast_df.empty:
-            st.warning("File forecast.csv kosong/tidak ditemukan.")
+            st.warning("File outputs/forecast.csv kosong/tidak ditemukan.")
         else:
             if "Date" in forecast_df.columns:
                 forecast_df["Date"] = pd.to_datetime(forecast_df["Date"], errors="coerce")
-            st.plotly_chart(plot_forecast_with_history(hist_df.tail(120), forecast_df), use_container_width=True)
+            st.plotly_chart(plot_forecast_with_history(hist_df.tail(120), forecast_df), width="stretch")
             
             st.markdown("### 📋 Detail Tabel Forecast")
-            st.dataframe(forecast_df, use_container_width=True, hide_index=True)
+            st.dataframe(forecast_df, width="stretch", hide_index=True)
             
     with fc_right:
         st.subheader("🎯 Nilai Prediksi Horizon")
         with st.container(border=True):
             if not forecast_df.empty:
-                fc1.metric("Prediksi Besok", fmt_idr(forecast_df["Forecast"].iloc[0]))
+                st.metric("Prediksi Besok", fmt_idr(forecast_df["Forecast"].iloc[0]))
                 st.divider()
-                fc2.metric("Prediksi 7 Hari", fmt_idr(forecast_df["Forecast"].iloc[6] if len(forecast_df) >= 7 else np.nan))
+                st.metric("Prediksi 7 Hari", fmt_idr(forecast_df["Forecast"].iloc[6] if len(forecast_df) >= 7 else np.nan))
                 st.divider()
-                fc3.metric("Prediksi 30 Hari", fmt_idr(forecast_df["Forecast"].iloc[-1]))
+                st.metric("Prediksi 30 Hari", fmt_idr(forecast_df["Forecast"].iloc[-1]))
             else:
                 st.write("Data tidak tersedia.")
                 
         st.subheader("📈 Volume Perdagangan Terakhir")
-        st.plotly_chart(plot_volume(hist_df.tail(180), "TLKM"), use_container_width=True)
+        st.plotly_chart(plot_volume(hist_df.tail(180), "TLKM"), width="stretch")
 
 # --- TAB 2: EVALUASI MODEL ---
 with tab2:
@@ -521,14 +521,14 @@ with tab2:
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>📊 Actual vs Prediction</div>", unsafe_allow_html=True)
     if actual_pred_df.empty:
-        st.warning("File actual_vs_prediction.csv belum ditemukan atau kosong.")
+        st.warning("File outputs/actual_vs_prediction.csv belum ditemukan atau kosong.")
     else:
         grid_ap1, grid_ap2 = st.columns([3, 2])
         with grid_ap1:
-            st.plotly_chart(plot_actual_vs_prediction(actual_pred_df), use_container_width=True)
+            st.plotly_chart(plot_actual_vs_prediction(actual_pred_df), width="stretch")
         with grid_ap2:
             st.markdown("<div style='margin-bottom: 8px; font-weight:600; font-size:0.9rem;'>📋 Tabel Nilai Actual & Prediksi</div>", unsafe_allow_html=True)
-            st.dataframe(actual_pred_df, use_container_width=True, height=380)
+            st.dataframe(actual_pred_df, width="stretch", height=380)
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -537,14 +537,14 @@ with tab2:
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>📉 Kurva Training & Validation Loss</div>", unsafe_allow_html=True)
     if loss_df.empty:
-        st.warning("File loss_history.csv belum ditemukan atau kosong.")
+        st.warning("File outputs/loss_history.csv belum ditemukan atau kosong.")
     else:
         grid_loss1, grid_loss2 = st.columns([3, 2])
         with grid_loss1:
-            st.plotly_chart(plot_loss_history(loss_df), use_container_width=True)
+            st.plotly_chart(plot_loss_history(loss_df), width="stretch")
         with grid_loss2:
             st.markdown("<div style='margin-bottom: 8px; font-weight:600; font-size:0.9rem;'>📋 Tabel History Loss per Epoch</div>", unsafe_allow_html=True)
-            st.dataframe(loss_df, use_container_width=True, height=380)
+            st.dataframe(loss_df, width="stretch", height=380)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- TAB 3: PERBANDINGAN SAHAM ---
@@ -557,7 +557,7 @@ with tab3:
     if bench_fig is None:
         st.warning("Data pembanding gagal dimuat.")
     else:
-        st.plotly_chart(bench_fig, use_container_width=True)
+        st.plotly_chart(bench_fig, width="stretch")
 
 # --- TAB 4: DATA MENTAH ---
 with tab4:
@@ -566,7 +566,7 @@ with tab4:
     show_df = hist_df[preview_cols].copy()
     if "Date" in show_df.columns:
         show_df["Date"] = show_df["Date"].dt.strftime("%d %b %Y")
-    st.dataframe(show_df.tail(100), use_container_width=True, hide_index=True)
+    st.dataframe(show_df.tail(100), width="stretch", hide_index=True)
 
 st.divider()
 st.caption(f"Source: Yahoo Finance | Focus: {PRIMARY_TICKER}")
