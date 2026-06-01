@@ -27,7 +27,7 @@ if st_autorefresh is not None:
     st_autorefresh(interval=60_000, key="dashboard_refresh")
 
 # =========================================================
-# FIXED HIGH-CONTRAST PREMIUM STYLE (Perbaikan Judul & Kotak)
+# PREMIUM STYLE WITH STREAMLIT COMPATIBILITY
 # =========================================================
 st.markdown(
     """
@@ -43,54 +43,26 @@ st.markdown(
             padding-bottom: 2rem; 
         }
         
-        /* Gaya Kartu Utama - Warna Gelap Solid agar teks kontras */
+        /* Container Card Utama - Menggunakan border tipis & transparansi adaptif */
         .card-soft {
-            background-color: #0f172a !important;
-            border: 1px solid #1e293b !important;
+            background-color: rgba(15, 23, 42, 0.05) !important;
+            border: 1px solid rgba(148, 163, 184, 0.2) !important;
             border-radius: 14px !important;
-            padding: 20px !important;
+            padding: 22px !important;
             margin-bottom: 1.5rem !important;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
-            overflow: hidden !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
         }
         
-        /* PERBAIKAN UTAMA: Judul Section di Dalam Kotak */
-        .section-title { 
-            font-size: 1.1rem !important; 
-            font-weight: 700 !important; 
-            color: #ffffff !important; /* Dipaksa PUTIH BERSIH agar kelihatan jelas */
-            margin-top: 0px !important;
-            margin-bottom: 15px !important;
-            padding-bottom: 5px !important;
-            border-bottom: 1px solid #334155 !important;
-            line-height: 1.4 !important;
-        }
-        
-        /* Perbaikan StMetric bawaan Streamlit agar teks di dalamnya pas & putih */
+        /* Maksa Warna Metric Card bawaan Streamlit agar konsisten */
         div[data-testid="stMetric"] {
-            background-color: #0f172a !important;
-            border: 1px solid #1e293b !important;
+            border: 1px solid rgba(148, 163, 184, 0.2) !important;
             padding: 15px 20px !important;
             border-radius: 12px !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
         }
         
-        /* Memaksa warna teks label metrik */
-        div[data-testid="stMetric"] label {
-            color: #94a3b8 !important;
-            font-weight: 500 !important;
-        }
+        .muted { color: #64748b; font-size: 0.95rem; }
         
-        /* Memaksa warna angka metrik */
-        div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-            color: #ffffff !important;
-            font-weight: 700 !important;
-        }
-        
-        .muted { color: #cbd5e1; font-size: 0.95rem; }
-        .small { font-size: 0.85rem; }
-        
-        /* Badge Live */
+        /* Badge Live dengan Animasi */
         .badge-live {
             display: inline-flex; 
             align-items: center; 
@@ -98,7 +70,7 @@ st.markdown(
             padding: 0.35rem 0.75rem; 
             border-radius: 8px;
             background: rgba(34, 197, 94, 0.15); 
-            color: #4ade80; 
+            color: #22c55e; 
             font-weight: 700; 
             font-size: 0.75rem;
             border: 1px solid rgba(34, 197, 94, 0.3);
@@ -118,25 +90,19 @@ st.markdown(
             100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(34, 211, 92, 0); }
         }
 
-        /* Desain Tab Kustom */
+        /* Desain Tab Kustom yang Bersih */
         .stTabs [data-baseweb="tab-list"] {
             gap: 8px;
-            background-color: #0f172a;
+            background-color: rgba(148, 163, 184, 0.08);
             padding: 6px;
             border-radius: 12px;
-            border: 1px solid #1e293b;
+            border: 1px solid rgba(148, 163, 184, 0.15);
         }
         .stTabs [data-baseweb="tab"] {
             height: 40px;
             border-radius: 8px;
-            color: #94a3b8;
-            font-weight: 500;
             transition: all 0.2s ease;
             padding: 0 16px;
-        }
-        .stTabs [data-baseweb="tab"]:hover {
-            color: #f1f5f9;
-            background-color: rgba(255, 255, 255, 0.05);
         }
         .stTabs [aria-selected="true"] {
             background-color: #3b82f6 !important;
@@ -306,29 +272,21 @@ def make_metric_card(col, label, value, delta=None, help_text=None):
 
 
 # =========================================================
-# CONFIG TEMPLATE PLOTLY VISUAL (Fixed High Contrast)
+# CONFIG TEMPLATE PLOTLY VISUAL (Adaptif Tema Terang/Gelap)
 # =========================================================
-def apply_clean_theme(fig, title, y_title, x_title="Tanggal"):
+def apply_clean_theme(fig, y_title, x_title="Tanggal"):
     fig.update_layout(
-        title=dict(text=title, font=dict(size=14, color="#ffffff", weight="bold")),
-        template="plotly_dark",
+        template="plotly_white",  # Fleksibel mengikuti grafik putih/terang bawaan
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         hovermode="x unified",
-        margin=dict(l=10, r=10, t=50, b=10),
+        margin=dict(l=10, r=10, t=20, b=10),
         legend=dict(
-            orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
-            font=dict(size=11, color="#e2e8f0")
+            orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
         ),
     )
-    fig.update_xaxes(
-        title_text=x_title, showgrid=False, 
-        tickfont=dict(color="#94a3b8"), title_font=dict(color="#cbd5e1")
-    )
-    fig.update_yaxes(
-        title_text=y_title, showgrid=True, 
-        gridcolor="#1e293b", tickfont=dict(color="#94a3b8"), title_font=dict(color="#cbd5e1")
-    )
+    fig.update_xaxes(title_text=x_title, showgrid=False)
+    fig.update_yaxes(title_text=y_title, showgrid=True, gridcolor="rgba(148, 163, 184, 0.15)")
     return fig
 
 
@@ -357,7 +315,7 @@ def plot_price_history(df: pd.DataFrame, ticker_label: str):
                 hovertemplate="%{x|%d %b %Y}<br>MA50: Rp %{y:,.0f}<extra></extra>",
             )
         )
-    return apply_clean_theme(fig, f"Pergerakan Harga {ticker_label}", "Harga (Rp)")
+    return apply_clean_theme(fig, "Harga (Rp)")
 
 
 def plot_volume(df: pd.DataFrame, ticker_label: str):
@@ -365,12 +323,12 @@ def plot_volume(df: pd.DataFrame, ticker_label: str):
     fig.add_trace(
         go.Bar(
             x=df["Date"], y=df["Volume"], name="Volume",
-            marker_color="#38bdf8", opacity=0.8,
+            marker_color="#0ea5e9", opacity=0.8,
             hovertemplate="%{x|%d %b %Y}<br>Volume: %{y:,.0f}<extra></extra>",
         )
     )
-    fig = apply_clean_theme(fig, f"Volume Perdagangan {ticker_label}", "Volume")
-    fig.update_layout(height=300, showlegend=False)
+    fig = apply_clean_theme(fig, "Volume")
+    fig.update_layout(height=260, showlegend=False)
     return fig
 
 
@@ -395,7 +353,7 @@ def plot_forecast_with_history(history_df: pd.DataFrame, forecast_df: pd.DataFra
                 hovertemplate="%{x|%d %b %Y}<br>Forecast: Rp %{y:,.0f}<extra></extra>",
             )
         )
-    return apply_clean_theme(fig, "Forecast 30 Hari TLKM", "Harga (Rp)")
+    return apply_clean_theme(fig, "Harga (Rp)")
 
 
 def plot_actual_vs_prediction(actual_pred: pd.DataFrame):
@@ -415,7 +373,7 @@ def plot_actual_vs_prediction(actual_pred: pd.DataFrame):
                 hovertemplate="Index %{x}<br>Prediction: Rp %{y:,.0f}<extra></extra>",
             )
         )
-    return apply_clean_theme(fig, "Actual vs Prediction pada Data Test", "Nilai Terskala", "Observasi")
+    return apply_clean_theme(fig, "Nilai Terskala", "Observasi")
 
 
 def plot_loss_history(loss_df: pd.DataFrame):
@@ -436,7 +394,7 @@ def plot_loss_history(loss_df: pd.DataFrame):
                     hovertemplate="Epoch %{x}<br>Val Loss: %{y:.6f}<extra></extra>",
                 )
             )
-    return apply_clean_theme(fig, "Kurva Training dan Validation Loss", "Loss", "Epoch")
+    return apply_clean_theme(fig, "Loss", "Epoch")
 
 
 def plot_benchmark(selected_tickers: list[str], period: str, interval: str):
@@ -471,7 +429,7 @@ def plot_benchmark(selected_tickers: list[str], period: str, interval: str):
                 hovertemplate="%{x|%d %b %Y}<br>Normalized: %{y:.2f}<extra></extra>",
             )
         )
-    return apply_clean_theme(fig, "Perbandingan Kinerja Terkumpul (Basis 100)", "Index Normalized")
+    return apply_clean_theme(fig, "Index Normalized")
 
 
 def show_fundamentals(ticker: str):
@@ -526,7 +484,7 @@ def sidebar_controls():
 
 
 # =========================================================
-# LOAD OUTPUTS
+# LOAD DATA OUTPUTS
 # =========================================================
 metrics = load_json_metrics("models/metrics.json")
 forecast_df = load_csv("outputs/forecast.csv")
@@ -535,14 +493,14 @@ loss_df = load_csv("outputs/loss_history.csv")
 
 
 # =========================================================
-# SIDEBAR
+# SIDEBAR CONTROL CALLS
 # =========================================================
 period_label, compare_list = sidebar_controls()
 period, interval = PERIOD_MAP[period_label]
 
 
 # =========================================================
-# DATA
+# LIVE DATA FETCHER
 # =========================================================
 hist_df = download_data(PRIMARY_TICKER, period, interval)
 hist_df = add_indicators(hist_df) if not hist_df.empty else hist_df
@@ -598,7 +556,7 @@ make_metric_card(m5, "Model Utama", metrics.get("model_name", "Multivariate LSTM
 st.markdown("<br>", unsafe_allow_html=True)
 
 # =========================================================
-# MAIN LAYOUT
+# MAIN LAYOUT WITH NATIVE HEADERS (Garis Judul Otomatis)
 # =========================================================
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Historis & Forecast",
@@ -613,12 +571,12 @@ with tab1:
 
     with c1:
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Grafik Historis TLKM</div>", unsafe_allow_html=True)
+        st.subheader("📊 Grafik Historis TLKM") # NATIVE SUBHEADER (Auto Terang / Gelap)
         st.plotly_chart(plot_price_history(hist_df, "TLKM"), use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Forecast 30 Hari ke Depan</div>", unsafe_allow_html=True)
+        st.subheader("🔮 Forecast 30 Hari ke Depan")
         if forecast_df.empty:
             st.warning("File outputs/forecast.csv belum ditemukan atau kosong.")
         else:
@@ -649,7 +607,7 @@ with tab1:
 
     with c2:
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Ringkasan Harga</div>", unsafe_allow_html=True)
+        st.subheader("📌 Ringkasan Harga")
         s1, s2 = st.columns(2)
         s1.metric("Open", fmt_idr(latest_open))
         s2.metric("High", fmt_idr(latest_high))
@@ -662,7 +620,7 @@ with tab1:
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Indikator Teknis</div>", unsafe_allow_html=True)
+        st.subheader("⚡ Indikator Teknis")
         tech1, tech2 = st.columns(2)
         tech1.metric("RSI", fmt_num(latest_rsi, 2))
         tech2.metric("MACD", fmt_num(latest_macd, 4))
@@ -673,7 +631,7 @@ with tab1:
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Volume Perdagangan</div>", unsafe_allow_html=True)
+        st.subheader("📈 Volume Perdagangan")
         st.plotly_chart(plot_volume(hist_df.tail(180), "TLKM"), use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -682,7 +640,7 @@ with tab2:
 
     with e1:
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Evaluasi Model</div>", unsafe_allow_html=True)
+        st.subheader("🎯 Evaluasi Model")
 
         em1, em2, em3 = st.columns(3)
         em1.metric("MAE", fmt_num(metrics.get("mae"), 4))
@@ -695,7 +653,7 @@ with tab2:
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Informasi Model</div>", unsafe_allow_html=True)
+        st.subheader("ℹ️ Informasi Model")
         model_name = metrics.get("model_name", "Multivariate LSTM")
         epochs = metrics.get("epochs", "-")
         batch_size = metrics.get("batch_size", "-")
@@ -711,7 +669,7 @@ with tab2:
 
     with e2:
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Actual vs Prediction</div>", unsafe_allow_html=True)
+        st.subheader("📉 Actual vs Prediction")
         if actual_pred_df.empty:
             st.warning("File outputs/actual_vs_prediction.csv belum ditemukan atau kosong.")
         else:
@@ -720,7 +678,7 @@ with tab2:
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Training Loss</div>", unsafe_allow_html=True)
+        st.subheader("📉 Training Loss")
         if loss_df.empty:
             st.warning("File outputs/loss_history.csv belum ditemukan atau kosong.")
         else:
@@ -730,14 +688,14 @@ with tab2:
 
 with tab3:
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>Fundamental TLKM</div>", unsafe_allow_html=True)
+    st.subheader("🏢 Fundamental Saham TLKM")
     st.caption("Data ini diambil dari Yahoo Finance melalui yfinance. Nilai bisa berubah sesuai ketersediaan data.")
     show_fundamentals(PRIMARY_TICKER)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab4:
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>Perbandingan Kinerja Saham</div>", unsafe_allow_html=True)
+    st.subheader("⚖️ Perbandingan Kinerja Saham")
     st.caption("TLKM tetap menjadi fokus utama. Grafik berikut membandingkan kinerja harga yang dinormalisasi terhadap saham lain.")
     selected = [(k, BENCHMARKS[k]) for k in compare_list]
     selected.insert(0, ("TLKM", PRIMARY_TICKER))
@@ -747,7 +705,8 @@ with tab4:
     else:
         st.plotly_chart(bench_fig, use_container_width=True)
 
-    st.markdown("<br><h3 style='color:white; font-size:1.15rem; font-weight:600;'>Ringkasan Perbandingan</h3>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("📋 Ringkasan Perbandingan")
     bench_rows = []
     for label, ticker in selected:
         d = download_data(ticker, period, interval)
@@ -787,7 +746,7 @@ with tab4:
 
 with tab5:
     st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>Data Mentah Historis TLKM</div>", unsafe_allow_html=True)
+    st.subheader("🗂️ Data Mentah Historis TLKM")
     preview_cols = [c for c in ["Date", "Open", "High", "Low", "Close", "Volume", "RSI", "MACD", "MA20", "MA50"] if c in hist_df.columns]
     show_df = hist_df[preview_cols].copy()
     if "Date" in show_df.columns:
