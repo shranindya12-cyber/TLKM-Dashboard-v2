@@ -43,12 +43,29 @@ st.markdown(
             padding-bottom: 2rem; 
         }
         
-        /* Merapikan Metric Card Bawaan Streamlit */
+        /* Merapikan Metric Card Bawaan Streamlit DAN MEMPERBAIKI TULISAN TERPOTONG (...) */
         div[data-testid="stMetric"] {
             border: 1px solid rgba(148, 163, 184, 0.2) !important;
-            padding: 15px 20px !important;
+            padding: 10px 14px !important; /* Dipersempit padding dalam agar ruang angka lebih luas */
             border-radius: 12px !important;
             background-color: rgba(148, 163, 184, 0.05) !important;
+        }
+        
+        /* 1. Mengecilkan ukuran tulisan angka utama (Harga, MAE, RMSE, dll) */
+        div[data-testid="stMetricValue"] {
+            font-size: 1.35rem !important; /* Mengecilkan ukuran agar muat di kotak kecil */
+            white-space: nowrap !important; /* Memaksa tulisan tetap satu baris lurus */
+        }
+        
+        /* 2. Mengecilkan ukuran label teks di atas angka */
+        div[data-testid="stMetricLabel"] p {
+            font-size: 0.85rem !important;
+            white-space: nowrap !important;
+        }
+        
+        /* 3. Mengecilkan ukuran angka delta merah/hijau di bawah angka utama */
+        div[data-testid="stMetricDelta"] {
+            font-size: 0.8rem !important;
         }
         
         .muted { color: #64748b; font-size: 0.95rem; }
