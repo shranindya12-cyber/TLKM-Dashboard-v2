@@ -456,40 +456,65 @@ with tab1:
         st.plotly_chart(plot_volume(hist_df.tail(180), "TLKM"), use_container_width=True)
 
 with tab2:
-    e1, e2 = st.columns([1, 1])
-    with e1:
-        st.subheader("🎯 Evaluasi Model")
-        with st.container(border=True):
-            em1, em2, em3 = st.columns(3)
-            em1.metric("MAE", fmt_num(safe_get_metric(metrics, "mae"), 4))
-            em2.metric("RMSE", fmt_num(safe_get_metric(metrics, "rmse"), 4))
-            em3.metric("MAPE", fmt_pct(safe_get_metric(metrics, "mape"), 2))
-            em4, em5 = st.columns(2)
-            em4.metric("Accuracy", fmt_pct(safe_get_metric(metrics, "accuracy"), 2))
-            em5.metric("R²", fmt_num(safe_get_metric(metrics, "r2"), 4))
-            
-        st.subheader("ℹ️ Informasi Model")
-        with st.container(border=True):
-            mi1, mi2 = st.columns(2)
-            mi1.metric("Model", model_display_name)
-            mi2.metric("Epoch", str(safe_get_metric(metrics, "epochs") or "-"))
-            mi3, mi4 = st.columns(2)
-            mi3.metric("Batch Size", str(safe_get_metric(metrics, "batch_size") or "-"))
-            mi4.metric("Lookback", str(safe_get_metric(metrics, "lookback") or "-"))
-            
-    with e2:
-        st.subheader("📉 Actual vs Prediction")
-        if actual_pred_df.empty:
-            st.warning("File outputs/actual_vs_prediction.csv kosong/tidak ditemukan.")
-        else:
+    # 1. INFORMASI MODEL
+    st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>ℹ️ Informasi Model</div>", unsafe_allow_html=True)
+    model_name = metrics.get("model_name", "Multivariate LSTM")
+    epochs = metrics.get("epochs", "-")
+    batch_size = metrics.get("batch_size", "-")
+    lookback = metrics.get("lookback", "-")
+
+    mi1, mi2, mi3, mi4 = st.columns(4)
+    mi1.metric("Model Utama", model_name)
+    mi2.metric("Epoch", str(epochs))
+    mi3.metric("Batch Size", str(batch_size))
+    mi4.metric("Lookback", str(lookback))
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 2. EVALUASI (MAE RMSE DLL)
+    st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>🎯 Evaluasi (MAE RMSE DLL)</div>", unsafe_allow_html=True)
+    em1, em2, em3, em4, em5 = st.columns(5)
+    em1.metric("MAE", fmt_num(metrics.get("mae"), 4))
+    em2.metric("RMSE", fmt_num(metrics.get("rmse"), 4))
+    em3.metric("MAPE", fmt_pct(metrics.get("mape"), 2))
+    em4.metric("Accuracy", fmt_pct(metrics.get("accuracy"), 2))
+    em5.metric("R²", fmt_num(metrics.get("r2"), 4))
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 3. ACTUAL PREDIKSI (SAMPINGNYA TABEL ACTUAL PREDIKSI)
+    st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>📊 Actual vs Prediction</div>", unsafe_allow_html=True)
+    if actual_pred_df.empty:
+        st.warning("File outputs/actual_vs_prediction.csv belum ditemukan atau kosong.")
+    else:
+        grid_ap1, grid_ap2 = st.columns([3, 2]) # Membagi grafik (kiri) dan tabel (kanan)
+        with grid_ap1:
             st.plotly_chart(plot_actual_vs_prediction(actual_pred_df), use_container_width=True)
-            st.dataframe(actual_pred_df.head(25), use_container_width=True, hide_index=True)
-            
-        st.subheader("📉 Training Loss")
-        if loss_df.empty:
-            st.warning("File outputs/loss_history.csv kosong/tidak ditemukan.")
-        else:
+        with grid_ap2:
+            st.markdown("<div style='margin-bottom: 8px; font-weight:600; font-size:0.9rem;'>📋 Tabel Nilai Actual & Prediksi</div>", unsafe_allow_html=True)
+            st.dataframe(actual_pred_df, use_container_width=True, height=380)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 4. TRAINING LOSS VAL LOSS (SAMPINGNYA TABEL TRAIN LOSS VAL LOSS)
+    st.markdown("<div class='card-soft'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>📉 Kurva Training & Validation Loss</div>", unsafe_allow_html=True)
+    if loss_df.empty:
+        st.warning("File outputs/loss_history.csv belum ditemukan atau kosong.")
+    else:
+        grid_loss1, grid_loss2 = st.columns([3, 2]) # Membagi grafik (kiri) dan tabel (kanan)
+        with grid_loss1:
             st.plotly_chart(plot_loss_history(loss_df), use_container_width=True)
+        with grid_loss2:
+            st.markdown("<div style='margin-bottom: 8px; font-weight:600; font-size:0.9rem;'>📋 Tabel History Loss per Epoch</div>", unsafe_allow_html=True)
+            st.dataframe(loss_df, use_container_width=True, height=380)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with tab3:
     st.subheader("⚖️ Perbandingan Kinerja Saham")
