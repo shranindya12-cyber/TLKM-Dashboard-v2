@@ -46,18 +46,18 @@ st.markdown(
         /* Merapikan Metric Card */
         div[data-testid="stMetric"] {
             border: 1px solid rgba(148, 163, 184, 0.2) !important;
-            padding: 10px 14px !important;
+            padding: 12px 16px !important;
             border-radius: 12px !important;
             background-color: rgba(148, 163, 184, 0.05) !important;
         }
         
         div[data-testid="stMetricValue"] {
-            font-size: 1.35rem !important;
+            font-size: 1.4rem !important;
             white-space: nowrap !important;
         }
         
         div[data-testid="stMetricLabel"] p {
-            font-size: 0.85rem !important;
+            font-size: 0.88rem !important;
             white-space: nowrap !important;
         }
         
@@ -65,18 +65,20 @@ st.markdown(
         
         /* Container Bergaya Card Baku */
         .card-soft {
-            background: rgba(148, 163, 184, 0.03);
-            border: 1px solid rgba(148, 163, 184, 0.15);
+            background: rgba(148, 163, 184, 0.02);
+            border: 1px solid rgba(148, 163, 184, 0.12);
             border-radius: 14px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
         }
         
         .section-title {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 600;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             color: #1e293b;
+            border-left: 4px solid #3b82f6;
+            padding-left: 10px;
         }
         
         /* Badge Live Animasi */
@@ -307,7 +309,7 @@ def plot_volume(df: pd.DataFrame):
     fig = go.Figure()
     fig.add_trace(go.Bar(x=df["Date"], y=df["Volume"], name="Volume", marker_color="#0ea5e9", opacity=0.8))
     fig = apply_clean_theme(fig, "Volume")
-    fig.update_layout(height=280, showlegend=False)
+    fig.update_layout(height=300, showlegend=False)
     return fig
 
 
@@ -433,55 +435,53 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # ---------------------------------------------------------
-# TAB 1: ANALISIS HISTORIS & VOLUME
+# TAB 1: ANALISIS HISTORIS & VOLUME (FULL STRUKTUR VERTIKAL)
 # ---------------------------------------------------------
 with tab1:
-    col_hist_left, col_hist_right = st.columns([1, 2])
+    # 1. Ringkasan Harga (Full Width Horizontal Bar KPI)
+    st.markdown("<div class='section-title'>📌 Ringkasan Harga Saat Ini</div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        s1, s2, s3, s4, s5, s6 = st.columns(6)
+        s1.metric("Open", fmt_idr(latest_open))
+        s2.metric("High", fmt_idr(latest_high))
+        s3.metric("Low", fmt_idr(latest_low))
+        s4.metric("Close", fmt_idr(latest_price))
+        s5.metric("52W High", fmt_idr(high_52w))
+        s6.metric("52W Low", fmt_idr(low_52w))
+        
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 2. Indikator Teknis (Full Width Horizontal Bar KPI)
+    st.markdown("<div class='section-title'>⚡ Indikator Teknis Pasar</div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        tech1, tech2, tech3, tech4, tech5 = st.columns(5)
+        tech1.metric("RSI (14)", fmt_num(latest_rsi, 2))
+        tech2.metric("MACD", fmt_num(latest_macd, 4))
+        tech3.metric("Signal Line", fmt_num(latest_signal_line, 4))
+        tech4.metric("MA20", fmt_idr(latest_ma20))
+        tech5.metric("MA50", fmt_idr(latest_ma50))
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 3. Tabel Statistik Deskriptif Kinerja
+    st.markdown("<div class='section-title'>📊 Statistik Deskriptif Kinerja Historis</div>", unsafe_allow_html=True)
+    stats_data = {
+        "Metrik Parameter": ["Harga Tertinggi (Period)", "Harga Terendah (Period)", "Rata-rata Harga", "Standar Deviasi (Volatilitas)"],
+        "Nilai": [fmt_idr(high_52w), fmt_idr(low_52w), fmt_idr(avg_price), fmt_num(std_price, 2)]
+    }
+    st.dataframe(pd.DataFrame(stats_data), use_container_width=True, hide_index=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 4. Grafik Tren Pergerakan Harga Utama
+    st.markdown("<div class='section-title'>📈 Grafik Pergerakan Harga Historis TLKM</div>", unsafe_allow_html=True)
+    st.plotly_chart(plot_price_history(hist_df), width="stretch")
     
-    with col_hist_left:
-        # 1. Ringkasan Harga
-        st.markdown("<div class='section-title'>📌 Ringkasan Harga</div>", unsafe_allow_html=True)
-        with st.container(border=True):
-            s1, s2 = st.columns(2)
-            s1.metric("Open", fmt_idr(latest_open))
-            s2.metric("High", fmt_idr(latest_high))
-            s3, s4 = st.columns(2)
-            s3.metric("Low", fmt_idr(latest_low))
-            s4.metric("Close", fmt_idr(latest_price))
-            st.divider()
-            s5, s6 = st.columns(2)
-            s5.metric("52W High", fmt_idr(high_52w))
-            s6.metric("52W Low", fmt_idr(low_52w))
-            
-        # 2. Indikator Teknis
-        st.markdown("<div class='section-title'>⚡ Indikator Teknis</div>", unsafe_allow_html=True)
-        with st.container(border=True):
-            tech1, tech2 = st.columns(2)
-            tech1.metric("RSI (14)", fmt_num(latest_rsi, 2))
-            tech2.metric("MACD", fmt_num(latest_macd, 4))
-            tech3, tech4 = st.columns(2)
-            tech3.metric("Signal Line", fmt_num(latest_signal_line, 4))
-            tech4.metric("MA50", fmt_idr(latest_ma50))
-            st.metric("MA20", fmt_idr(latest_ma20))
-
-        # 3. Tabel Statistik Deskriptif (Harga Tertinggi, Terendah, Rata-rata, Std Dev)
-        st.markdown("<div class='section-title'>📊 Statistik Deskriptif Kinerja</div>", unsafe_allow_html=True)
-        stats_data = {
-            "Metrik Parameter": ["Harga Tertinggi (Period)", "Harga Terendah (Period)", "Rata-rata Harga", "Standar Deviasi (Volatilitas)"],
-            "Nilai": [fmt_idr(high_52w), fmt_idr(low_52w), fmt_idr(avg_price), fmt_num(std_price, 2)]
-        }
-        st.dataframe(pd.DataFrame(stats_data), use_container_width=True, hide_index=True)
-
-    with col_hist_right:
-        # Grafik Tren Utama
-        st.markdown("<div class='section-title'>📈 Grafik Pergerakan Harga TLKM</div>", unsafe_allow_html=True)
-        st.plotly_chart(plot_price_history(hist_df), width="stretch")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # 4. Grafik Volume Perdagangan (Hanya Ada di Tab Ini)
-        st.markdown("<div class='section-title'>📊 Grafik Volume Perdagangan</div>", unsafe_allow_html=True)
-        st.plotly_chart(plot_volume(hist_df), width="stretch")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 5. Grafik Volume Perdagangan
+    st.markdown("<div class='section-title'>📊 Grafik Volume Perdagangan</div>", unsafe_allow_html=True)
+    st.plotly_chart(plot_volume(hist_df), width="stretch")
 
 
 # ---------------------------------------------------------
