@@ -595,4 +595,4 @@ with tab1:
         tech3, tech4 = st.columns(2)
         tech3.metric("Signal Line", fmt_num(latest_signal_line, 4))
         tech4.metric("MA50", fmt_idr(latest_ma50))
-        st.metric("MA20", fmt_idr(latest_ma2)
+        st.metric("MA20", fmt_idr(latest_ma2))
