@@ -3,39 +3,56 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+import yfinance as yf  # <--- Kuncinya di sini!
 
 # ======================================================
 # PAGE CONFIG
 # ======================================================
 st.set_page_config(
-    page_title="TLKM Stock Dashboard",
+    page_title="TLKM Live Stock Dashboard",
     layout="wide"
 )
 
 # ======================================================
-# LOAD DATA AKTUAL & GENERATE FORECAST OTOMATIS
+# LOAD DATA LIVE DARI YAHOO FINANCE
 # ======================================================
-# Membaca data utama TLKM
-df = pd.read_csv("TLKM.csv")
-df["date"] = pd.to_datetime(df["date"])
+@st.cache_data(ttl=3600)  # Caching 1 jam sekali agar loading web cepat
+def load_live_data():
+    # Mengambil data TLKM dari Yahoo Finance (TLKM.JK)
+    # Kita ambil data maksimal (bisa diganti sesuai kebutuhan, misal '10y')
+    ticker = yf.Ticker("TLKM.JK")
+    df_live = ticker.history(period="max")
+    
+    # Merapikan struktur DataFrame agar sama dengan kodemu sebelumnya
+    df_live = df_live.reset_index()
+    df_live.columns = df_live.columns.str.lower()  # Ubah kolom jadi huruf kecil (date, open, close, dll)
+    
+    # Membuat kolom volatility dan daily_return yang dibutuhkan oleh statistikmu
+    df_live["daily_return"] = df_live["close"].pct_change()
+    df_live["volatility"] = df_live["daily_return"].rolling(21).std() # Volatilitas bulanan (21 hari bursa)
+    
+    return df_live
 
-# Mengambil tanggal terakhir dari data aktual sebagai acuan hari ini
+# Panggil data live
+df = load_live_data()
+
+# Mengambil tanggal terakhir dari Yahoo Finance sebagai acuan hari ini
 today = df["date"].max()
 
-# Fungsi untuk generate forecast dinamis agar maju otomatis setiap hari
-@st.cache_data(ttl=3600)  # Di-refresh setiap 1 jam agar hemat resources
-def generate_forecast(latest_date):
-    """
-    CATATAN: Jika kamu punya file model LSTM asli (misal format .h5/.pkl),
-    kamu bisa me-load model tersebut dan mengganti logic random di bawah ini 
-    dengan 'model.predict(input_data)'.
-    """
-    # Membuat 30 tanggal ke depan, MULAI HARI BESOKNYA dari tanggal data aktual terakhir
+# ======================================================
+# GENERATE FORECAST OTOMATIS
+# ======================================================
+@st.cache_data(ttl=3600)
+def generate_auto_forecast(latest_date):
+    # Membuat 30 tanggal ke depan, MULAI 1 HARI SETELAH tanggal terakhir di Yahoo Finance
     future_dates = pd.date_range(start=latest_date + pd.Timedelta(days=1), periods=30)
     
-    # Simulasi hasil prediksi (kita buat tren naik-turun tipis di sekitar harga terakhir)
+    # Simulasi Prediksi Model (Menyesuaikan harga penutupan terakhir)
+    # CATATAN: Jika kamu ingin menghubungkan ke model LSTM asli .h5/.pkl,
+    # masukkan logic 'model.predict(input_data)' di sini.
     last_price = df["close"].iloc[-1]
-    simulasi_prediksi = last_price + np.cumsum(np.random.normal(0, 20, 30))
+    np.random.seed(42)  
+    simulasi_prediksi = last_price + np.cumsum(np.random.normal(0, 15, 30))
     
     forecast_df = pd.DataFrame({
         "date": future_dates,
@@ -43,8 +60,8 @@ def generate_forecast(latest_date):
     })
     return forecast_df
 
-# Memanggil fungsi forecast otomatis
-forecast = generate_forecast(today)
+# Generate data forecast baru yang selalu up-to-date
+forecast = generate_auto_forecast(today)
 
 # ======================================================
 # SIDEBAR
@@ -68,6 +85,10 @@ periode = st.sidebar.selectbox(
 # ======================================================
 # FILTER DATA HISTORIS
 # ======================================================
+# Menghapus timezone pada datetime pandas agar tidak bentrok saat operasi Timedelta
+df["date"] = df["date"].dt.tz_localize(None)
+today = today.tz_localize(None)
+
 if periode == "7 Hari":
     filtered_df = df[df["date"] >= today - pd.Timedelta(days=7)]
 elif periode == "1 Bulan":
@@ -94,8 +115,8 @@ filtered_df["MA30"] = filtered_df["close"].rolling(30).mean()
 # ======================================================
 # HEADER
 # ======================================================
-st.title("Dashboard Analisis Saham TLKM")
-st.caption("Data diperbarui otomatis setiap hari pukul 10.00 WIB")
+st.title("Dashboard Analisis Saham TLKM (Live Data)")
+st.caption("Data diambil real-time dari Yahoo Finance")
 
 # ======================================================
 # METRICS
@@ -125,7 +146,7 @@ col3.metric(
 
 col4.metric(
     "Volatility",
-    f"{filtered_df['volatility'].mean():.4f}"
+    f"{filtered_df['volatility'].mean():.4f}" if not filtered_df['volatility'].isna().all() else "0.00"
 )
 
 # ======================================================
@@ -197,20 +218,20 @@ stats = pd.DataFrame({
         round(filtered_df["open"].mean(), 2),
         round(filtered_df["close"].mean(), 2),
         round(filtered_df["close"].std(), 2),
-        round(filtered_df["daily_return"].mean(), 4)
+        round(filtered_df["daily_return"].mean(), 4) if not filtered_df["daily_return"].isna().all() else 0.0
     ]
 })
 
 st.dataframe(stats, use_container_width=True)
 
 # ======================================================
-# FORECAST (Dibuat menyambung dengan data asli)
+# FORECAST (Grafik Dinamis & Menyambung)
 # ======================================================
 st.subheader("Forecast 30 Hari (LSTM)")
 
 fig4 = go.Figure()
 
-# Garis Historis (Ambil 30 hari terakhir saja sebagai konteks)
+# Garis Konektor: Mengambil 30 hari terakhir data bursa live sebagai jembatan visual
 fig4.add_trace(
     go.Scatter(
         x=filtered_df["date"].tail(30),
@@ -220,7 +241,7 @@ fig4.add_trace(
     )
 )
 
-# Garis Forecast
+# Garis Forecast Utama
 fig4.add_trace(
     go.Scatter(
         x=forecast["date"],
@@ -239,6 +260,16 @@ fig4.update_layout(
 st.plotly_chart(fig4, use_container_width=True)
 
 # ======================================================
+# TABEL DETAIL FORECAST
+# ======================================================
+st.subheader("Tabel Detail Hasil Forecast 30 Hari Ke Depan")
+
+tampilan_tabel = forecast.copy()
+tampilan_tabel["date"] = tampilan_tabel["date"].dt.strftime('%Y-%m-%d')
+
+st.dataframe(tampilan_tabel, use_container_width=True)
+
+# ======================================================
 # FOOTER
 # ======================================================
-st.caption(f"Last Updated : {today.strftime('%Y-%m-%d')}")
+st.caption(f"Last Updated (Bursa Last Close) : {today.strftime('%Y-%m-%d')}")
